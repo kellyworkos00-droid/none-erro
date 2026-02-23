@@ -1029,9 +1029,189 @@ model PaymentMethodConfig {
 }
 
 // ============================================================================
-// ENHANCED INVOICE MODEL WITH PAYMENT TRACKING
+// HUMAN RESOURCES & PAYROLL MANAGEMENT
 // ============================================================================
 
-// Note: Existing Invoice model enhanced with new calculated fields
+model Department {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  description String?
+  managerId   String?
+  isActive    Boolean     @default(true)
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  employees   Employee[]
+  
+  @@map("departments")
+}
+
+model Employee {
+  id              String      @id @default(cuid())
+  employeeNumber  String      @unique
+  
+  // Personal Information
+  firstName       String
+  lastName        String
+  email           String      @unique
+  phone           String?
+  dateOfBirth     DateTime?
+  gender          String?     // MALE, FEMALE, OTHER
+  address         String?
+  city            String?
+  country         String      @default("Kenya")
+  
+  // Employment Information
+  departmentId    String?
+  position        String
+  employmentType  String      @default("FULL_TIME") // FULL_TIME, PART_TIME, CONTRACT, INTERN
+  hireDate        DateTime    @default(now())
+  terminationDate DateTime?
+  employmentStatus String     @default("ACTIVE") // ACTIVE, ON_LEAVE, SUSPENDED, TERMINATED
+  
+  // Compensation
+  basicSalary     Float       @default(0)
+  currency        String      @default("KES")
+  paymentFrequency String     @default("MONTHLY") // MONTHLY, WEEKLY, BIWEEKLY
+  bankName        String?
+  bankAccount     String?
+  taxId           String?     // KRA PIN
+  nhifNumber      String?
+  nssfNumber      String?
+  
+  // System
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  // Relationships
+  department      Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  payrolls        Payroll[]
+  leaves          Leave[]
+  attendances     Attendance[]
+  
+  @@index([employeeNumber])
+  @@index([email])
+  @@index([departmentId])
+  @@index([employmentStatus])
+  @@map("employees")
+}
+
+model Payroll {
+  id              String      @id @default(cuid())
+  
+  employeeId      String
+  month           Int         // 1-12
+  year            Int
+  
+  // Earnings
+  basicSalary     Float
+  allowances      Float       @default(0)
+  bonuses         Float       @default(0)
+  overtime        Float       @default(0)
+  grossPay        Float
+  
+  // Deductions
+  taxAmount       Float       @default(0)
+  nhifAmount      Float       @default(0)
+  nssfAmount      Float       @default(0)
+  otherDeductions Float       @default(0)
+  totalDeductions Float
+  
+  // Net Pay
+  netPay          Float
+  
+  // Payment Info
+  paymentDate     DateTime?
+  paymentMethod   String?
+  paymentReference String?
+  status          String      @default("DRAFT") // DRAFT, PROCESSED, PAID, CANCELLED
+  
+  // Metadata
+  notes           String?
+  processingDate  DateTime?
+  processedBy     String?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  employee        Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  deductions      PayrollDeduction[]
+  
+  @@unique([employeeId, month, year])
+  @@index([employeeId])
+  @@index([month, year])
+  @@index([status])
+  @@map("payrolls")
+}
+
+model PayrollDeduction {
+  id              String      @id @default(cuid())
+  
+  payrollId       String
+  deductionType   String      // TAX, NHIF, NSSF, LOAN, ADVANCE, OTHER
+  description     String
+  amount          Float
+  
+  createdAt       DateTime    @default(now())
+  
+  payroll         Payroll     @relation(fields: [payrollId], references: [id], onDelete: Cascade)
+  
+  @@index([payrollId])
+  @@map("payroll_deductions")
+}
+
+model Leave {
+  id              String      @id @default(cuid())
+  
+  employeeId      String
+  leaveType       String      // ANNUAL, SICK, MATERNITY, PATERNITY, UNPAID, OTHER
+  startDate       DateTime
+  endDate         DateTime
+  daysRequested   Int
+  
+  reason          String
+  status          String      @default("PENDING") // PENDING, APPROVED, REJECTED, CANCELLED
+  
+  approvedBy      String?
+  approvedDate    DateTime?
+  rejectionReason String?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  employee        Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  @@index([employeeId])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@map("leaves")
+}
+
+model Attendance {
+  id              String      @id @default(cuid())
+  
+  employeeId      String
+  date            DateTime    @db.Date
+  checkIn         DateTime?
+  checkOut        DateTime?
+  hoursWorked     Float?
+  status          String      @default("PRESENT") // PRESENT, ABSENT, LATE, HALF_DAY, ON_LEAVE
+  
+  notes           String?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  employee        Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  @@unique([employeeId, date])
+  @@index([employeeId])
+  @@index([date])
+  @@map("attendances")
+}
+
+// ============================================================================
 // isNotPaid: Boolean - Calculated as paidAmount < totalAmount
 // isFullyPaid: Boolean - Calculated as paidAmount >= totalAmount
