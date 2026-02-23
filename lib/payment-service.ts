@@ -480,8 +480,8 @@ export async function getCustomerPaymentSummary(customerId: string) {
     },
   });
 
-  const totalAmount =invoices.reduce((sum: number, inv) => sum + inv.totalAmount, 0);
-  const totalPaid = invoices.reduce((sum: number, inv) => sum + inv.paidAmount, 0);
+  const totalAmount = invoices.reduce((sum: number, inv: { totalAmount: number }) => sum + inv.totalAmount, 0);
+  const totalPaid = invoices.reduce((sum: number, inv: { paidAmount: number }) => sum + inv.paidAmount, 0);
   const totalOutstanding = totalAmount - totalPaid;
 
   const paidCount = invoices.filter((inv: { status: string }) => inv.status === 'PAID').length;

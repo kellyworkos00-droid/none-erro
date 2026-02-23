@@ -65,6 +65,8 @@ const bulkPaymentSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 
+type BulkPaymentData = z.infer<typeof bulkPaymentSchema>;
+
 /**
  * POST /api/payments/record
  * Record a single payment
@@ -133,7 +135,7 @@ export async function POST(request: NextRequest) {
           value: data.amount,
           rule: `amount must be <= ${invoice.balanceAmount}`,
         });
-        throw new ValidationError(validation.error);
+        throw new ValidationError(validation.error || 'Payment validation failed');
       }
 
       // Check if already paid
@@ -353,13 +355,12 @@ export async function recordBulkPaymentsHandler(request: NextRequest) {
       requestId,
     });
 
-    const { success, data, error } = await parseRequestBody(request, bulkPaymentSchema);
+    const { success, data, error } = await parseRequestBody<BulkPaymentData>(request, bulkPaymentSchema);
 
-    if (!success) {
+    if (!success || !data) {
       await logValidation('Bulk payment data validation failed', {
         userId: user.userId,
         requestId,
-        details: getValidationErrors(error!),
       });
       throw new ValidationError('Invalid bulk payment data', getValidationErrors(error!));
     }
@@ -392,11 +393,6 @@ export async function recordBulkPaymentsHandler(request: NextRequest) {
     await logPayment(`Bulk payment processing completed`, LogLevel.INFO, {
       userId: user.userId,
       requestId,
-      metadata: {
-        total: results.length,
-        successful: successCount,
-        failed: results.length - successCount,
-      },
       duration: Date.now() - startTime,
     });
 
@@ -444,13 +440,14 @@ export async function recordRefundHandler(request: NextRequest) {
       reason: z.string().min(5).max(500),
     });
 
-    const { success, data, error } = await parseRequestBody(request, refundSchema);
+    type RefundData = z.infer<typeof refundSchema>;
 
-    if (!success) {
+    const { success, data, error } = await parseRequestBody<RefundData>(request, refundSchema);
+
+    if (!success || !data) {
       await logValidation('Refund data validation failed', {
         userId: user.userId,
         requestId,
-        details: getValidationErrors(error!),
       });
       throw new ValidationError('Invalid refund data', getValidationErrors(error!));
     }
@@ -461,7 +458,6 @@ export async function recordRefundHandler(request: NextRequest) {
       await logPayment(`Refund processing failed: ${result.message}`, LogLevel.ERROR, {
         userId: user.userId,
         requestId,
-        metadata: { paymentId: data.paymentId, reason: data.reason },
         duration: Date.now() - startTime,
       });
       throw new ValidationError(result.message);
@@ -482,7 +478,6 @@ export async function recordRefundHandler(request: NextRequest) {
     await logPayment(`Refund processed successfully`, LogLevel.INFO, {
       userId: user.userId,
       requestId,
-      metadata: { paymentId: data.paymentId, reason: data.reason },
       duration: Date.now() - startTime,
     });
 

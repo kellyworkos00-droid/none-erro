@@ -119,9 +119,9 @@ export function applyCorsHeaders(
 
   if (isOriginAllowed(origin, allowedOrigins)) {
     response.headers.set('Access-Control-Allow-Origin', origin);
-    response.headers.set('Access-Control-Allow-Methods', (config.allowedMethods || DEFAULT_CORS_CONFIG.allowedMethods).join(', '));
-    response.headers.set('Access-Control-Allow-Headers', (config.allowedHeaders || DEFAULT_CORS_CONFIG.allowedHeaders).join(', '));
-    response.headers.set('Access-Control-Max-Age', (config.maxAge || DEFAULT_CORS_CONFIG.maxAge).toString());
+    response.headers.set('Access-Control-Allow-Methods', (config.allowedMethods || DEFAULT_CORS_CONFIG.allowedMethods!).join(', '));
+    response.headers.set('Access-Control-Allow-Headers', (config.allowedHeaders || DEFAULT_CORS_CONFIG.allowedHeaders!).join(', '));
+    response.headers.set('Access-Control-Max-Age', (config.maxAge || DEFAULT_CORS_CONFIG.maxAge!).toString());
 
     if (config.exposedHeaders) {
       response.headers.set('Access-Control-Expose-Headers', config.exposedHeaders.join(', '));
