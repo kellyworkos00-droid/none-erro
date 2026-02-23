@@ -55,7 +55,14 @@ export const createProjectSchema = z.object({
   quotedAmount: z.number().nonnegative('Quoted amount cannot be negative').default(0),
   estimatedExpenses: z.number().nonnegative('Estimated expenses cannot be negative').default(0),
   actualExpenses: z.number().nonnegative('Actual expenses cannot be negative').default(0),
-  status: z.enum(['PLANNING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']).default('PLANNING'),
+  status: z.enum(['PLANNING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'ON_HOLD']).default('PLANNING'),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional(),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+  projectManager: z.string().optional(),
+  contactPerson: z.string().optional(),
+  contactEmail: z.string().email().optional().or(z.literal('')),
+  contactPhone: z.string().optional(),
 });
 
 // ============================================================================
