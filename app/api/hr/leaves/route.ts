@@ -9,8 +9,7 @@ import { requirePermission } from '@/lib/authorization';
 import { createApiResponse } from '@/lib/response';
 import { ValidationError, NotFoundError } from '@/lib/errors';
 import { z } from 'zod';
-import { createAuditLog } from '@/lib/audit';
-import { getClientIp, getUserAgent } from '@/lib/request-utils';
+import { createAuditLog, getClientIp, getUserAgent } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,11 +68,11 @@ export async function GET(request: NextRequest) {
 
     const summary = {
       total: leaves.length,
-      pending: leaves.filter(l => l.status === 'PENDING').length,
-      approved: leaves.filter(l => l.status === 'APPROVED').length,
-      rejected: leaves.filter(l => l.status === 'REJECTED').length,
+      pending: leaves.filter((l: any) => l.status === 'PENDING').length,
+      approved: leaves.filter((l: any) => l.status === 'APPROVED').length,
+      rejected: leaves.filter((l: any) => l.status === 'REJECTED').length,
       totalDays: leaves
-        .filter(l => l.status === 'APPROVED')
+        .filter((l: any) => l.status === 'APPROVED')
         .reduce((sum: number, l: { daysRequested: number }) => sum + l.daysRequested, 0),
     };
 

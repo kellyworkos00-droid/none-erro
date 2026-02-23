@@ -9,8 +9,7 @@ import { requirePermission } from '@/lib/authorization';
 import { createApiResponse } from '@/lib/response';
 import { ValidationError, NotFoundError } from '@/lib/errors';
 import { z } from 'zod';
-import { createAuditLog } from '@/lib/audit';
-import { getClientIp, getUserAgent } from '@/lib/request-utils';
+import { createAuditLog, getClientIp, getUserAgent } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -74,7 +73,7 @@ export async function GET(request: NextRequest) {
       {
         employees,
         total: employees.length,
-        active: employees.filter(e => e.employmentStatus === 'ACTIVE').length,
+        active: employees.filter((e: any) => e.employmentStatus === 'ACTIVE').length,
       },
       'Employees retrieved successfully'
     );

@@ -9,8 +9,7 @@ import { requirePermission } from '@/lib/authorization';
 import { createApiResponse } from '@/lib/response';
 import { ValidationError } from '@/lib/errors';
 import { z } from 'zod';
-import { createAuditLog } from '@/lib/audit';
-import { getClientIp, getUserAgent } from '@/lib/request-utils';
+import { createAuditLog, getClientIp, getUserAgent } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -124,9 +123,9 @@ export async function GET(request: NextRequest) {
       totalNet: payrolls.reduce((sum: number, p: { netPay: number }) => sum + p.netPay, 0),
       totalDeductions: payrolls.reduce((sum: number, p: { totalDeductions: number }) => sum + p.totalDeductions, 0),
       byStatus: {
-        draft: payrolls.filter(p => p.status === 'DRAFT').length,
-        processed: payrolls.filter(p => p.status === 'PROCESSED').length,
-        paid: payrolls.filter(p => p.status === 'PAID').length,
+        draft: payrolls.filter((p: any) => p.status === 'DRAFT').length,
+        processed: payrolls.filter((p: any) => p.status === 'PROCESSED').length,
+        paid: payrolls.filter((p: any) => p.status === 'PAID').length,
       },
     };
 
