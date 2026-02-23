@@ -1,0 +1,1037 @@
+// Prisma Schema for Kelly OS - Bank Statement Reconciliation Module
+// PostgreSQL (Supabase) version for production-ready deployment
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================================
+// USER MANAGEMENT & AUTHENTICATION
+// ============================================================================
+
+// UserRole enum values: ADMIN, FINANCE_MANAGER, FINANCE_STAFF, VIEWER
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String   // Hashed with bcrypt
+  firstName String
+  lastName  String
+  role      String   @default("VIEWER")
+  isActive  Boolean  @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastLogin DateTime?
+
+  // Relationships
+  payments             Payment[]
+  reconciliationLogs   ReconciliationLog[]
+  ledgerEntries        LedgerEntry[]
+  auditLogs            AuditLog[]
+  bankTransactions     BankTransaction[]
+  posOrders            PosOrder[]
+  purchaseOrders       PurchaseOrder[]
+  expenses             Expense[]
+  supplierBills        SupplierBill[]
+  supplierPayments     SupplierPayment[]
+  salesQuotes          SalesQuote[]
+  salesOrders          SalesOrder[]
+  salesDeliveries      SalesDelivery[]
+  approvedSalesOrders  SalesOrder[]    @relation("SalesOrderApprovedBy")
+  approvedSupplierBills SupplierBill[] @relation("SupplierBillApprovedBy")
+  matchedSupplierBills  SupplierBill[] @relation("SupplierBillMatchedBy")
+  stockMovements       StockMovement[]
+  stockTransfers       StockTransfer[]
+  projectsCreated      Project[]
+  systemLogs           SystemLog[]
+
+  @@map("users")
+}
+
+// ============================================================================
+// PROJECT & TENDER MANAGEMENT
+// ============================================================================
+
+// ProjectStatus values: PLANNING, IN_PROGRESS, COMPLETED, CANCELLED
+
+model Project {
+  id                String   @id @default(cuid())
+  name              String
+  clientName        String
+  tenderReference   String?
+  description       String?
+
+  quotedAmount      Float    @default(0)
+  estimatedExpenses Float    @default(0)
+  actualExpenses    Float    @default(0)
+  status            String   @default("PLANNING")
+
+  createdBy         String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  createdByUser     User     @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@map("projects")
+}
+
+// ============================================================================
+// CUSTOMER MANAGEMENT
+// ============================================================================
+
+model Customer {
+  id              String   @id @default(cuid())
+  customerCode    String   @unique // e.g., "CUST-0001"
+  name            String
+  email           String?
+  phone           String?
+  billingAddress  String?
+  
+  // Financial tracking
+  currentBalance  Float  @default(0)
+  totalPaid       Float  @default(0)
+  totalOutstanding Float @default(0)
+  creditLimit     Float?
+  
+  // Payment metrics
+  totalPayments   Int    @default(0)
+  averagePaymentAmount Float @default(0)
+  lastPaymentDate DateTime?
+  daysOverdue     Int    @default(0)
+  
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relationships
+  invoices        Invoice[]
+  payments        Payment[]
+  ledgerEntries   LedgerEntry[]
+  posOrders       PosOrder[] @relation("PosOrderCustomer")
+  salesQuotes     SalesQuote[]
+  salesOrders     SalesOrder[]
+
+  @@index([currentBalance])
+  @@index([totalOutstanding])
+  @@map("customers")
+}
+
+// ============================================================================
+// INVOICE MANAGEMENT
+// ============================================================================
+
+// InvoiceStatus values: DRAFT, SENT, PARTIALLY_PAID, PAID, OVERDUE, CANCELLED
+
+model Invoice {
+  id              String        @id @default(cuid())
+  invoiceNumber   String        @unique // e.g., "INV-2024-0001"
+  customerId      String
+  
+  // Financial details
+  subtotal        Float
+  taxAmount       Float       @default(0)
+  totalAmount     Float
+  paidAmount      Float       @default(0)
+  balanceAmount   Float
+  
+  // Status tracking
+  status          String @default("DRAFT")
+  issueDate       DateTime
+  dueDate         DateTime
+  paidDate        DateTime?
+  
+  // Payment tracking
+  lastPaymentDate DateTime?
+  paymentCount    Int         @default(0)    // Total number of payments
+  partialPaymentCount Int      @default(0)   // Number of partial payments
+  
+  // Metadata
+  description     String?
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relationships
+  customer        Customer      @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  posOrders       PosOrder[]    @relation("PosOrderInvoice")
+  payments        Payment[]
+  ledgerEntries   LedgerEntry[]
+  salesOrder      SalesOrder? @relation("SalesOrderInvoice")
+
+  @@index([status])
+  @@index([paidAmount])
+  @@map("invoices")
+}
+
+// ============================================================================
+// BANK TRANSACTIONS (Raw Imported Data)
+// ============================================================================
+
+// TransactionStatus values: PENDING, MATCHED, UNMATCHED, PARTIALLY_MATCHED, REJECTED
+
+model BankTransaction {
+  id                String            @id @default(cuid())
+  
+  // Unique identifier from bank (prevents duplicate imports)
+  bankTransactionId String            @unique
+  
+  // Transaction details
+  transactionDate   DateTime
+  valueDate         DateTime?
+  amount            Float
+  currency          String            @default("KES")
+  
+  // Bank statement fields
+  reference         String            // Customer reference / description
+  debitAccount      String?
+  creditAccount     String?
+  balance           Float?
+  
+  // Reconciliation status
+  status            String @default("PENDING")
+  matchedAt         DateTime?
+  matchedBy         String?
+  
+  // Source tracking
+  statementFileName String
+  statementUploadId String
+  rowNumber         Int
+  
+  // Audit
+  importedAt        DateTime          @default(now())
+  importedBy        String
+  
+  // Relationships
+  importedByUser    User              @relation(fields: [importedBy], references: [id], onDelete: Restrict)
+  payments          Payment[]
+  reconciliationLog ReconciliationLog?
+
+  @@map("bank_transactions")
+}
+
+// ============================================================================
+// PAYMENTS (Links customers to bank transactions)
+// ============================================================================
+
+// PaymentStatus values: PENDING, CONFIRMED, RECONCILED, REVERSED
+
+model Payment {
+  id                  String        @id @default(cuid())
+  paymentNumber       String        @unique @default(cuid())
+  
+  // Link to customer and invoice
+  customerId          String
+  invoiceId           String?
+  
+  // Link to bank transaction
+  bankTransactionId   String?       @unique
+  
+  // Payment details
+  amount              Float
+  paymentDate         DateTime
+  paymentMethod       String        @default("BANK_TRANSFER")
+  reference           String
+  
+  // Status
+  status              String @default("PENDING")
+  
+  // Reconciliation tracking
+  isReconciled        Boolean       @default(false)
+  reconciledAt        DateTime?
+  reconciledBy        String?
+  
+  // New fields for enhanced payment tracking
+  requestId           String?       // UUID for distributed tracing
+  processingTime      Int?          // milliseconds
+  metadata            String?       // JSON with payment-specific data
+  failureReason       String?       // If payment failed
+  retryCount          Int           @default(0)
+  lastRetryAt         DateTime?
+  
+  // Metadata
+  notes               String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  // Relationships
+  customer            Customer           @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  invoice             Invoice?           @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  bankTransaction     BankTransaction?   @relation(fields: [bankTransactionId], references: [id], onDelete: Restrict)
+  reconciledByUser    User?              @relation(fields: [reconciledBy], references: [id], onDelete: Restrict)
+  ledgerEntries       LedgerEntry[]
+
+  @@index([requestId])
+  @@index([retryCount])
+  @@map("payments")
+}
+
+// ============================================================================
+// DOUBLE-ENTRY LEDGER SYSTEM
+// ============================================================================
+
+// LedgerEntryType values: DEBIT, CREDIT
+// AccountType values: ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE
+
+model Account {
+  id          String      @id @default(cuid())
+  accountCode String      @unique // e.g., "1010" for Cash, "1200" for AR
+  accountName String
+  accountType String
+  description String?
+  
+  // Financial tracking
+  currentBalance Float  @default(0)
+  
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relationships
+  ledgerEntries LedgerEntry[]
+
+  @@map("accounts")
+}
+
+model LedgerEntry {
+  id              String          @id @default(cuid())
+  
+  // Linking
+  accountId       String
+  transactionId   String          // Groups debit/credit pairs
+  
+  // Entry details
+  entryType       String
+  amount          Float
+  entryDate       DateTime
+  description     String
+  
+  // Reference linking (Optional - for traceability)
+  customerId      String?
+  invoiceId       String?
+  paymentId       String?
+  
+  // Metadata (IMMUTABLE after creation)
+  isReversed      Boolean         @default(false)
+  reversalEntryId String?         @unique
+  
+  // Audit trail
+  createdBy       String
+  createdAt       DateTime        @default(now())
+  
+  // Relationships
+  account         Account         @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  customer        Customer?       @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  invoice         Invoice?        @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  payment         Payment?        @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  createdByUser   User            @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  reversalEntry   LedgerEntry?    @relation("Reversal", fields: [reversalEntryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reversedBy      LedgerEntry?    @relation("Reversal")
+
+  @@map("ledger_entries")
+}
+
+// ============================================================================
+// RECONCILIATION LOGS (Audit Trail)
+// ============================================================================
+
+// ReconciliationAction values: AUTO_MATCHED, MANUAL_MATCHED, UNMATCHED, REJECTED, REVERSED
+
+model ReconciliationLog {
+  id                String                @id @default(cuid())
+  
+  bankTransactionId String                @unique
+  action            String
+  
+  // Match details
+  matchedCustomerId String?
+  matchedInvoiceId  String?
+  matchedAmount     Float?
+  
+  // Reasoning
+  reason            String?
+  notes             String?
+  
+  // Audit
+  performedBy       String
+  performedAt       DateTime              @default(now())
+
+  // Relationships
+  bankTransaction   BankTransaction       @relation(fields: [bankTransactionId], references: [id], onDelete: Cascade)
+  performedByUser   User                  @relation(fields: [performedBy], references: [id], onDelete: Restrict)
+
+  @@map("reconciliation_logs")
+}
+
+// ============================================================================
+// AUDIT LOGS (System-wide activity tracking)
+// ============================================================================
+
+// AuditAction values: LOGIN, LOGOUT, UPLOAD_STATEMENT, RECONCILE_PAYMENT, CREATE_CUSTOMER, UPDATE_CUSTOMER, CREATE_INVOICE, UPDATE_INVOICE, MANUAL_ADJUSTMENT,REVERSE_PAYMENT, DELETE_RECORD, EXPORT_DATA
+
+model AuditLog {
+  id          String      @id @default(cuid())
+  
+  userId      String
+  action      String
+  entityType  String?     // e.g., "Customer", "Invoice", "Payment"
+  entityId    String?
+  
+  // Details
+  description String
+  ipAddress   String?
+  userAgent   String?
+  metadata    String?       // Additional context as JSON string
+  
+  createdAt   DateTime    @default(now())
+
+  // Relationships
+  user        User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("audit_logs")
+}
+
+// ============================================================================
+// POS SYSTEM (Point of Sale)
+// ============================================================================
+
+// ProductStatus values: ACTIVE, DISCONTINUED, OUT_OF_STOCK
+
+model Product {
+  id              String      @id @default(cuid())
+  sku             String      @unique // Auto-generated SKU (e.g., "SKU-1234567890")
+  name            String
+  description     String?
+  
+  // Pricing
+  price           Float
+  cost            Float?
+  
+  // Inventory
+  quantity        Int         @default(0)
+  reorderLevel    Int         @default(10)
+  unit            String      @default("UNIT")
+  
+  // Image
+  imageUrl        String?     // URL to product image
+  
+  // Status
+  status          String      @default("ACTIVE")
+  
+  // Metadata
+  category        String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relationships
+  posOrderItems   PosOrderItem[]
+  purchaseOrderItems PurchaseOrderItem[]
+  salesQuoteItems SalesQuoteItem[]
+  salesOrderItems SalesOrderItem[]
+  salesDeliveryItems SalesDeliveryItem[]
+  stockLevels     StockLevel[]
+  stockMovements  StockMovement[]
+  stockTransferItems StockTransferItem[]
+
+  @@map("products")
+}
+
+// OrderStatus values: DRAFT, COMPLETED, CANCELLED, REFUNDED
+
+model PosOrder {
+  id              String        @id @default(cuid())
+  orderNumber     String        @unique @default(cuid())
+  
+  // Customer reference
+  customerId      String?
+  invoiceId       String?
+  
+  // Order totals
+  subtotal        Float         @default(0)
+  tax             Float         @default(0)
+  discount        Float         @default(0)
+  totalAmount     Float         @default(0)
+  
+  // Payment
+  amountPaid      Float         @default(0)
+  paymentMethod   String?       // CASH, CARD, CHEQUE, etc.
+  paymentStatus   String        @default("PENDING")
+  
+  // Status
+  status          String        @default("DRAFT")
+  
+  // User tracking
+  createdBy       String
+  
+  // Timestamps
+  orderDate       DateTime      @default(now())
+  completedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relationships
+  customer        Customer?     @relation("PosOrderCustomer", fields: [customerId], references: [id], onDelete: SetNull)
+  invoice         Invoice?      @relation("PosOrderInvoice", fields: [invoiceId], references: [id], onDelete: SetNull)
+  createdByUser   User          @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  orderItems      PosOrderItem[]
+
+  @@map("pos_orders")
+}
+
+model PosOrderItem {
+  id              String        @id @default(cuid())
+  posOrderId      String
+  productId       String
+  
+  // Item details
+  quantity        Int
+  unitPrice       Float
+  discount        Float         @default(0)
+  totalPrice      Float
+  
+  // Metadata
+  notes           String?
+  createdAt       DateTime      @default(now())
+
+  // Relationships
+  posOrder        PosOrder      @relation(fields: [posOrderId], references: [id], onDelete: Cascade)
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@map("pos_order_items")
+}
+
+// ============================================================================
+// ERP: SUPPLIERS & PURCHASING
+// ============================================================================
+
+model Supplier {
+  id            String        @id @default(cuid())
+  supplierCode  String        @unique
+  name          String
+  email         String?
+  phone         String?
+  address       String?
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relationships
+  purchaseOrders PurchaseOrder[]
+  bills         SupplierBill[]
+  payments      SupplierPayment[]
+
+  @@map("suppliers")
+}
+
+// PurchaseOrderStatus values: DRAFT, APPROVED, SENT, RECEIVED, CANCELLED
+
+model PurchaseOrder {
+  id           String        @id @default(cuid())
+  orderNumber  String        @unique
+  supplierId   String
+
+  // Totals
+  subtotal     Float         @default(0)
+  tax          Float         @default(0)
+  totalAmount  Float         @default(0)
+
+  // Status
+  status       String        @default("DRAFT")
+  expectedDate DateTime?
+  notes        String?
+
+  // Audit
+  createdBy    String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Relationships
+  supplier     Supplier      @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  createdByUser User          @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  items        PurchaseOrderItem[]
+  bills        SupplierBill[]
+
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  productId       String
+  quantity        Int
+  unitCost        Float
+  totalCost       Float
+  createdAt       DateTime      @default(now())
+
+  // Relationships
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@map("purchase_order_items")
+}
+
+// ============================================================================
+// ERP: SUPPLIER BILLS & PAYMENTS
+// ============================================================================
+
+// SupplierBillStatus values: DRAFT, OPEN, PARTIALLY_PAID, PAID, OVERDUE, CANCELLED
+
+model SupplierBill {
+  id            String      @id @default(cuid())
+  billNumber    String      @unique
+  supplierId    String
+  reference     String?
+  issueDate     DateTime
+  dueDate       DateTime
+
+  // Amounts
+  totalAmount   Float
+  paidAmount    Float       @default(0)
+  balanceAmount Float
+
+  status        String      @default("OPEN")
+  approvalStatus String     @default("NOT_SUBMITTED")
+  approvedBy    String?
+  approvedAt    DateTime?
+  submittedAt   DateTime?
+  purchaseOrderId String?
+  matchedAt     DateTime?
+  matchedBy     String?
+  notes         String?
+
+  // Audit
+  createdBy     String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relationships
+  supplier      Supplier    @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  createdByUser User        @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  approvedByUser User?      @relation("SupplierBillApprovedBy", fields: [approvedBy], references: [id], onDelete: SetNull)
+  matchedByUser  User?      @relation("SupplierBillMatchedBy", fields: [matchedBy], references: [id], onDelete: SetNull)
+  purchaseOrder PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
+  payments      SupplierPayment[]
+
+  @@map("supplier_bills")
+}
+
+model SupplierPayment {
+  id            String      @id @default(cuid())
+  paymentNumber String      @unique
+  supplierId    String
+  billId        String
+  amount        Float
+  paymentDate   DateTime
+  paymentMethod String?
+  reference     String?
+  notes         String?
+
+  // Audit
+  createdBy     String
+  createdAt     DateTime    @default(now())
+
+  // Relationships
+  supplier      Supplier    @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  bill          SupplierBill @relation(fields: [billId], references: [id], onDelete: Cascade)
+  createdByUser User        @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@map("supplier_payments")
+}
+
+// ============================================================================
+// ERP: SALES QUOTES, ORDERS, DELIVERIES
+// ============================================================================
+
+// SalesQuoteStatus values: DRAFT, SENT, ACCEPTED, DECLINED, EXPIRED
+
+model SalesQuote {
+  id            String      @id @default(cuid())
+  quoteNumber   String      @unique
+  customerId    String
+  status        String      @default("DRAFT")
+  subtotal      Float       @default(0)
+  tax           Float       @default(0)
+  totalAmount   Float       @default(0)
+  validUntil    DateTime?
+  notes         String?
+
+  createdBy     String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  customer      Customer    @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  createdByUser User        @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  items         SalesQuoteItem[]
+  salesOrder    SalesOrder?
+
+  @@map("sales_quotes")
+}
+
+model SalesQuoteItem {
+  id           String      @id @default(cuid())
+  salesQuoteId String
+  productId    String
+  quantity     Int
+  unitPrice    Float
+  discount     Float       @default(0)
+  totalPrice   Float
+  createdAt    DateTime    @default(now())
+
+  salesQuote   SalesQuote  @relation(fields: [salesQuoteId], references: [id], onDelete: Cascade)
+  product      Product     @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@map("sales_quote_items")
+}
+
+// SalesOrderStatus values: DRAFT, PENDING_APPROVAL, APPROVED, DELIVERED, INVOICED, COMPLETED, CANCELLED
+// SalesApprovalStatus values: NOT_SUBMITTED, PENDING, APPROVED, REJECTED
+
+model SalesOrder {
+  id            String      @id @default(cuid())
+  orderNumber   String      @unique
+  customerId    String
+  quoteId       String?     @unique
+  invoiceId     String?     @unique
+
+  status        String      @default("DRAFT")
+  approvalStatus String     @default("NOT_SUBMITTED")
+  approvedBy    String?
+  approvedAt    DateTime?
+  submittedAt   DateTime?
+  deliveredAt   DateTime?
+  notes         String?
+
+  subtotal      Float       @default(0)
+  tax           Float       @default(0)
+  totalAmount   Float       @default(0)
+
+  createdBy     String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  customer      Customer    @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  createdByUser User        @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  approvedByUser User?      @relation("SalesOrderApprovedBy", fields: [approvedBy], references: [id], onDelete: SetNull)
+  quote         SalesQuote? @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+  invoice       Invoice?    @relation("SalesOrderInvoice", fields: [invoiceId], references: [id], onDelete: SetNull)
+  items         SalesOrderItem[]
+  deliveries    SalesDelivery[]
+
+  @@map("sales_orders")
+}
+
+model SalesOrderItem {
+  id           String      @id @default(cuid())
+  salesOrderId String
+  productId    String
+  quantity     Int
+  unitPrice    Float
+  discount     Float       @default(0)
+  totalPrice   Float
+  createdAt    DateTime    @default(now())
+
+  salesOrder   SalesOrder  @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  product      Product     @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@map("sales_order_items")
+}
+
+// SalesDeliveryStatus values: PENDING, DISPATCHED, DELIVERED, CANCELLED
+
+model SalesDelivery {
+  id            String      @id @default(cuid())
+  deliveryNumber String     @unique
+  salesOrderId  String
+  status        String      @default("PENDING")
+  dispatchedAt  DateTime?
+  deliveredAt   DateTime?
+  createdBy     String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  salesOrder    SalesOrder  @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  createdByUser User        @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  items         SalesDeliveryItem[]
+
+  @@map("sales_deliveries")
+}
+
+model SalesDeliveryItem {
+  id             String       @id @default(cuid())
+  salesDeliveryId String
+  productId      String
+  quantity       Int
+  createdAt      DateTime     @default(now())
+
+  salesDelivery  SalesDelivery @relation(fields: [salesDeliveryId], references: [id], onDelete: Cascade)
+  product        Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@map("sales_delivery_items")
+}
+
+// ============================================================================
+// ERP: WAREHOUSES & STOCK
+// ============================================================================
+
+model Warehouse {
+  id          String             @id @default(cuid())
+  code        String             @unique
+  name        String
+  address     String?
+  isActive    Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  locations   WarehouseLocation[]
+  stockLevels StockLevel[]
+  movements   StockMovement[]
+
+  @@map("warehouses")
+}
+
+model WarehouseLocation {
+  id          String        @id @default(cuid())
+  warehouseId String
+  code        String
+  name        String
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  warehouse   Warehouse     @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  stockLevels StockLevel[]
+  movements   StockMovement[]
+  transfersFrom StockTransfer[] @relation("TransferFromLocation")
+  transfersTo   StockTransfer[] @relation("TransferToLocation")
+
+  @@unique([warehouseId, code])
+  @@map("warehouse_locations")
+}
+
+model StockLevel {
+  id          String            @id @default(cuid())
+  productId   String
+  warehouseId String
+  locationId  String
+  quantity    Int               @default(0)
+  updatedAt   DateTime          @updatedAt
+
+  product     Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouse   Warehouse         @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  location    WarehouseLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, locationId])
+  @@map("stock_levels")
+}
+
+model StockMovement {
+  id          String            @id @default(cuid())
+  productId   String
+  warehouseId String
+  locationId  String
+  quantity    Int
+  movementType String
+  referenceType String?
+  referenceId String?
+  notes       String?
+  createdBy   String
+  createdAt   DateTime          @default(now())
+
+  product     Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouse   Warehouse         @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  location    WarehouseLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  createdByUser User            @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@index([productId])
+  @@index([warehouseId])
+  @@index([locationId])
+  @@map("stock_movements")
+}
+
+model StockTransfer {
+  id            String            @id @default(cuid())
+  transferNumber String           @unique
+  fromLocationId String
+  toLocationId   String
+  status         String           @default("DRAFT")
+  createdBy      String
+  createdAt      DateTime         @default(now())
+  completedAt    DateTime?
+
+  fromLocation   WarehouseLocation @relation("TransferFromLocation", fields: [fromLocationId], references: [id], onDelete: Restrict)
+  toLocation     WarehouseLocation @relation("TransferToLocation", fields: [toLocationId], references: [id], onDelete: Restrict)
+  createdByUser  User              @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  items          StockTransferItem[]
+
+  @@map("stock_transfers")
+}
+
+model StockTransferItem {
+  id            String        @id @default(cuid())
+  transferId    String
+  productId     String
+  quantity      Int
+
+  transfer      StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  product       Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@map("stock_transfer_items")
+}
+
+// ============================================================================
+// ERP: EXPENSE CATEGORIES & EXPENSES
+// ============================================================================
+
+model ExpenseCategory {
+  id                    String    @id @default(cuid())
+  name                  String    @unique
+  monthlyBudget         Float     @default(0)
+  alertThresholdPercent Float     @default(80)
+  isActive              Boolean   @default(true)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relationships
+  expenses              Expense[]
+
+  @@map("expense_categories")
+}
+
+model Expense {
+  id            String        @id @default(cuid())
+  expenseNumber String        @unique
+  category      String
+  categoryId    String?
+  amount        Float
+  description   String?
+  expenseDate   DateTime
+  paymentMethod String?
+  vendor        String?
+  reference     String?
+
+  // Audit
+  createdBy     String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relationships
+  createdByUser User          @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  categoryRef   ExpenseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@map("expenses")
+}
+
+// ============================================================================
+// LOGGING & MONITORING SYSTEM
+// ============================================================================
+
+// LogLevel values: DEBUG, INFO, WARN, ERROR, CRITICAL
+// LogCategory values: PAYMENT, INVOICE, AUTH, SECURITY, VALIDATION, DATABASE, EXTERNAL_API, PERFORMANCE, SYSTEM, USER
+
+model SystemLog {
+  id          String      @id @default(cuid())
+  
+  // Log details
+  message     String
+  level       String      // DEBUG, INFO, WARN, ERROR, CRITICAL
+  category    String      // PAYMENT, INVOICE, AUTH, SECURITY, etc.
+  
+  // Context
+  userId      String?
+  requestId   String?
+  ipAddress   String?
+  
+  // Metadata
+  duration    Int?        // milliseconds
+  error       String?     // Error message if applicable
+  metadata    String?     // JSON string with additional data
+  
+  // Tracking
+  createdAt   DateTime    @default(now())
+  expiresAt   DateTime?   // For log retention policy
+  
+  // Index for common queries
+  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([level])
+  @@index([category])
+  @@index([userId])
+  @@index([requestId])
+  @@index([createdAt])
+  @@map("system_logs")
+}
+
+// API Metrics - Track endpoint performance
+model ApiMetric {
+  id            String      @id @default(cuid())
+  
+  endpoint      String      // e.g., "/api/payments"
+  method        String      // GET, POST, PUT, DELETE
+  statusCode    Int
+  responseTime  Int         // milliseconds
+  
+  // Aggregation
+  timestamp     DateTime    @default(now())
+  
+  @@index([endpoint])
+  @@index([method])
+  @@index([timestamp])
+  @@map("api_metrics")
+}
+
+// Database Query Metrics - Track query performance
+model QueryMetric {
+  id          String      @id @default(cuid())
+  
+  query       String      // Query description
+  duration    Int         // milliseconds
+  hasError    Boolean     @default(false)
+  errorMessage String?
+  
+  // Aggregation
+  timestamp   DateTime    @default(now())
+  
+  @@index([duration])
+  @@index([hasError])
+  @@index([timestamp])
+  @@map("query_metrics")
+}
+
+// ============================================================================
+// PAYMENT METHOD ENUM & METADATA
+// ============================================================================
+
+// PaymentMethodType values: BANK_TRANSFER, CARD, MOBILE_MONEY, DIGITAL_WALLET, CRYPTO, CASH, CHEQUE, DIRECT_DEBIT, BUY_NOW_PAY_LATER, INVOICE_FINANCING, CRYPTOCURRENCY, ACH_TRANSFER, WIRE_TRANSFER, PAYPAL, STRIPE
+
+model PaymentMethodConfig {
+  id              String      @id @default(cuid())
+  
+  methodName      String      @unique  // e.g., "BANK_TRANSFER"
+  displayName     String      // e.g., "Bank Transfer"
+  icon            String?     // Icon/logo URL
+  category        String      // TRADITIONAL, MOBILE, DIGITAL, CRYPTO
+  processingTime  Int         // minutes
+  isActive        Boolean     @default(true)
+  requiresReference Boolean   @default(true)
+  
+  // Metadata
+  metadata        String?     // JSON config
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  @@map("payment_method_configs")
+}
+
+// ============================================================================
+// ENHANCED INVOICE MODEL WITH PAYMENT TRACKING
+// ============================================================================
+
+// Note: Existing Invoice model enhanced with new calculated fields
+// isNotPaid: Boolean - Calculated as paidAmount < totalAmount
+// isFullyPaid: Boolean - Calculated as paidAmount >= totalAmount

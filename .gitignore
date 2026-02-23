@@ -1,0 +1,49 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Testing
+coverage
+
+# Next.js
+.next/
+out/
+build
+dist
+
+# Production
+.vercel
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env*.local
+.neon
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.agents/
+
+# Prisma
+prisma/migrations/**/migration.sql
+
+# Uploads
+uploads/
+tmp/
+
+# Logs
+logs
+*.log

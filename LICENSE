@@ -1,0 +1,56 @@
+MIT License
+
+Copyright (c) 2024 Kelly OS - Bank Reconciliation Module
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+IMPORTANT NOTICE FOR FINANCIAL SOFTWARE:
+
+This software is designed to handle real financial transactions and data.
+While every effort has been made to ensure accuracy and security, users must:
+
+1. Thoroughly test in a non-production environment before deployment
+2. Implement additional security measures as required by their jurisdiction
+3. Maintain proper backups of all financial data
+4. Comply with all applicable financial regulations and accounting standards
+5. Conduct independent security audits before production use
+6. Verify all calculations and accounting entries
+7. Maintain proper audit trails and documentation
+
+The authors and copyright holders assume no liability for:
+- Financial losses due to software errors or misuse
+- Data loss or corruption
+- Security breaches or unauthorized access
+- Compliance violations or regulatory issues
+- Accounting errors or discrepancies
+
+Users are solely responsible for:
+- Proper configuration and security of their deployment
+- Compliance with financial regulations in their jurisdiction
+- Data backup and disaster recovery procedures
+- User access control and authentication
+- Regular security updates and patches
+- Independent verification of all financial operations
+
+This software should be used in conjunction with proper financial controls,
+regular audits, and professional accounting advice.
+
+USE AT YOUR OWN RISK.
