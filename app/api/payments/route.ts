@@ -3,7 +3,6 @@
  * Payment recording endpoint with multiple payment methods
  */
 
-import { NextRequest, NextResponse } from 'next/server';
 import { POST, GET } from './handlers';
 
 export const dynamic = 'force-dynamic';
