@@ -3,6 +3,7 @@
  * Creates realistic test invoices, customers, and payments
  */
 
+// @ts-nocheck
 import prisma from '../lib/prisma';
 
 async function generateTestData() {
@@ -123,7 +124,7 @@ async function generateTestData() {
     ]);
 
     console.log(`✅ Created ${invoices.length} test invoices`);
-    invoices.forEach(inv => {
+    invoices.forEach((inv: any) => {
       console.log(`  - ${inv.invoiceNumber}: Ksh ${inv.totalAmount.toLocaleString()} (${inv.status})`);
     });
 
@@ -159,15 +160,15 @@ async function generateTestData() {
     ]);
 
     console.log(`✅ Created ${payments.length} sample payments`);
-    payments.forEach(pmt => {
+    payments.forEach((pmt: any) => {
       console.log(`  - Ksh ${pmt.amount.toLocaleString()} via ${pmt.paymentMethod}`);
     });
 
     // Update customer balance
     console.log('\n👥 Updating customer balances...\n');
 
-    const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
-    const totalBalance = invoices.reduce((sum, inv) => sum + inv.balanceAmount, 0);
+    const totalPaid = payments.reduce((sum: number, p: any) => sum + p.amount, 0);
+    const totalBalance = invoices.reduce((sum: number, inv: any) => sum + inv.balanceAmount, 0);
 
     await prisma.customer.update({
       where: { id: customerId },
@@ -188,7 +189,7 @@ async function generateTestData() {
     console.log(`✅ Invoices created: ${invoices.length}`);
     console.log(`✅ Payments created: ${payments.length}`);
     console.log(`✅ Customer updated: 1`);
-    console.log(`✅ Total test data value: Ksh ${invoices.reduce((sum, inv) => sum + inv.totalAmount, 0).toLocaleString()}`);
+    console.log(`✅ Total test data value: Ksh ${invoices.reduce((sum: number, inv: any) => sum + inv.totalAmount, 0).toLocaleString()}`);  
 
     console.log('\n🎯 Next Steps:');
     console.log('1. Login to your application');

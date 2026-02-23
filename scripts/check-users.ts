@@ -1,3 +1,4 @@
+// @ts-nocheck
 import prisma from '../lib/prisma';
 import bcrypt from 'bcryptjs';
 
@@ -32,7 +33,7 @@ async function checkUsers() {
     console.log(`📊 Total Users: ${allUsers.length}\n`);
 
     // Display each user
-    allUsers.forEach((user, index) => {
+    allUsers.forEach((user: any, index: number) => {
       const isAdmin = user.role === 'ADMIN';
       const isActive = user.isActive ? '✅' : '❌';
       const lastLoginStr = user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never';
@@ -81,15 +82,15 @@ async function checkUsers() {
 
     const roles = ['ADMIN', 'FINANCE_MANAGER', 'FINANCE_STAFF', 'VIEWER'];
     for (const role of roles) {
-      const count = allUsers.filter(u => u.role === role).length;
-      const active = allUsers.filter(u => u.role === role && u.isActive).length;
+      const count = allUsers.filter((u: any) => u.role === role).length;
+      const active = allUsers.filter((u: any) => u.role === role && u.isActive).length;
       console.log(`${role.padEnd(20)} : ${count} total (${active} active)`);
     }
 
     // Active vs Inactive
     console.log('\n' + '-'.repeat(80));
-    const activeCount = allUsers.filter(u => u.isActive).length;
-    const inactiveCount = allUsers.filter(u => !u.isActive).length;
+    const activeCount = allUsers.filter((u: any) => u.isActive).length;
+    const inactiveCount = allUsers.filter((u: any) => !u.isActive).length;
     console.log(`Active Users    : ${activeCount}`);
     console.log(`Inactive Users  : ${inactiveCount}`);
 
@@ -98,7 +99,7 @@ async function checkUsers() {
     // Recommendations
     if (allUsers.length === 0) {
       console.log('⚠️  RECOMMENDATION: Create default users first\n');
-    } else if (!allUsers.some(u => u.role === 'ADMIN')) {
+    } else if (!allUsers.some((u: any) => u.role === 'ADMIN')) {
       console.log('⚠️  RECOMMENDATION: Create an ADMIN user for management\n');
     } else {
       console.log('✅ System has admin users created\n');

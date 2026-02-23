@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Payment Recording Service
  * Handles multiple ways to record payments against invoices

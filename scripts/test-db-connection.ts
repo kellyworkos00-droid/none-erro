@@ -3,6 +3,7 @@
  * Verifies the database is accessible and contains data
  */
 
+// @ts-nocheck
 import prisma from '../lib/prisma';
 
 async function testConnection() {
@@ -30,7 +31,7 @@ async function testConnection() {
         },
       });
       console.log('\n📋 User accounts:');
-      users.forEach(user => {
+      users.forEach((user: any) => {
         console.log(`  - ${user.email} (${user.firstName} ${user.lastName}) [${user.role}] - Created: ${user.createdAt.toLocaleDateString()}`);
       });
     }

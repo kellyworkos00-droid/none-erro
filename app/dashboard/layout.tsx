@@ -33,6 +33,8 @@ import {
   Building2,
   ShieldAlert,
   AlertCircle,
+  RotateCcw,
+  Activity,
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -106,6 +108,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: 'Unpaid Invoices', href: '/dashboard/invoices/unpaid', icon: AlertCircle },
       ],
     },
+    { name: 'Credit Notes', href: '/dashboard/credit-notes', icon: Receipt },
     { name: 'Sales Quotes', href: '/dashboard/sales-quotes', icon: FileSignature },
     { name: 'Sales Orders', href: '/dashboard/sales-orders', icon: ClipboardCheck },
     { name: 'POS', href: '/dashboard/pos', icon: ShoppingCart },
@@ -120,6 +123,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: 'Stock Variations', href: '/dashboard/stock-variations', icon: TrendingDown },
         { name: 'Stock Adjustments', href: '/dashboard/stock-adjustments', icon: TrendingUp },
         { name: 'Stock Transfers', href: '/dashboard/stock-transfers', icon: ClipboardList },
+        { name: 'Stock Movements', href: '/dashboard/stock-movements', icon: Activity },
+        { name: 'Product Returns', href: '/dashboard/product-returns', icon: RotateCcw },
       ],
     },
     { name: 'Suppliers', href: '/dashboard/suppliers', icon: Truck },

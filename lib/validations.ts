@@ -338,3 +338,36 @@ export type ManualMatchInput = z.infer<typeof manualMatchSchema>;
 export type RejectTransactionInput = z.infer<typeof rejectTransactionSchema>;
 export type CreatePaymentInput = z.infer<typeof createPaymentSchema>;
 export type ReconciliationFilterInput = z.infer<typeof reconciliationFilterSchema>;
+
+// ============================================================================
+// CREDIT NOTE SCHEMAS
+// ============================================================================
+
+export const createCreditNoteSchema = z.object({
+  customerId: z.string().min(1, 'Customer is required'),
+  invoiceId: z.string().optional(),
+  creditNoteType: z.enum(['REFUND', 'RETURN', 'ADJUSTMENT', 'DISCOUNT', 'DAMAGED', 'ERROR_CORRECTION']),
+  reason: z.string().min(1, 'Reason is required').max(500),
+  referenceType: z.string().optional(),
+  referenceId: z.string().optional(),
+  notes: z.string().max(1000).optional(),
+  internalNotes: z.string().max(1000).optional(),
+  items: z.array(z.object({
+    description: z.string().min(1, 'Description is required'),
+    quantity: z.number().positive('Quantity must be positive'),
+    unitPrice: z.number().nonnegative('Unit price cannot be negative'),
+    taxRate: z.number().min(0).max(100).default(0),
+    productId: z.string().optional(),
+    sku: z.string().optional(),
+    notes: z.string().optional(),
+  })).min(1, 'At least one item is required'),
+});
+
+export const updateCreditNoteSchema = z.object({
+  status: z.enum(['DRAFT', 'PENDING', 'APPROVED', 'APPLIED', 'CANCELLED']).optional(),
+  notes: z.string().max(1000).optional(),
+  internalNotes: z.string().max(1000).optional(),
+});
+
+export type CreateCreditNoteInput = z.infer<typeof createCreditNoteSchema>;
+export type UpdateCreditNoteInput = z.infer<typeof updateCreditNoteSchema>;

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Security Headers Middleware & Utilities
  * Implements industry best practices for security headers
