@@ -99,7 +99,7 @@ export async function createNotification(
           category: params.category,
           relatedEntityId: params.relatedEntityId,
           relatedEntityType: params.relatedEntityType,
-          metadata: params.metadata as any,
+          metadata: (params.metadata as Prisma.InputJsonValue) ?? Prisma.JsonNull,
           actionUrl: params.actionUrl,
         },
       });
