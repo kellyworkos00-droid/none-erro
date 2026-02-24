@@ -264,10 +264,10 @@ export async function PATCH(
     // Audit log
     await createAuditLog({
       userId: user.userId,
-      action: 'UPDATE',
-      entity: 'CREDIT_NOTE',
+      action: 'UPDATE_CREDIT_NOTE',
+      entityType: 'CreditNote',
       entityId: params.id,
-      details: auditMessage,
+      description: auditMessage,
     });
 
     return NextResponse.json({

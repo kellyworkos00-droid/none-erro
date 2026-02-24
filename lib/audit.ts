@@ -54,7 +54,8 @@ type AuditAction =
   | 'MANUAL_ADJUSTMENT'
   | 'REVERSE_PAYMENT'
   | 'DELETE_RECORD'
-  | 'EXPORT_DATA';
+  | 'EXPORT_DATA'
+  | 'UPDATE_CREDIT_NOTE';
 
 interface AuditLogData {
   userId: string;
