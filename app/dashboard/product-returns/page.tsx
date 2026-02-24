@@ -127,7 +127,7 @@ export default function ProductReturnsPage() {
 
       setReturns(returnsData.data.returns || []);
       setSummary(returnsData.data.summary);
-      setProducts(productsData.data || []);
+      setProducts(productsData.data?.items || []);
     } catch (err) {
       console.error('Fetch data error:', err);
       setError('Failed to load product returns');

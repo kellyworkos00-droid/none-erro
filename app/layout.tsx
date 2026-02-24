@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import { Space_Grotesk, Fraunces } from 'next/font/google';
+import { Toaster } from 'react-hot-toast';
 import './globals.css';
 import Header from './components/Header';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -26,8 +28,24 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${spaceGrotesk.variable} ${fraunces.variable} font-sans`}>
-        <Header />
-        {children}
+        <ErrorBoundary>
+          <Header />
+          {children}
+          <Toaster
+            position="top-right"
+            reverseOrder={false}
+            gutter={8}
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#fff',
+                color: '#000',
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+              },
+            }}
+          />
+        </ErrorBoundary>
       </body>
     </html>
   );

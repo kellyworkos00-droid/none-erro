@@ -148,7 +148,7 @@ export default function CreditNotesPage() {
 
       setCreditNotes(creditNotesData.data.creditNotes || []);
       setSummary(creditNotesData.data.summary);
-      setCustomers(customersData.data || []);
+      setCustomers(customersData.data?.customers || []);
     } catch (err) {
       console.error('Fetch data error:', err);
       setError('Failed to load credit notes');
@@ -171,7 +171,7 @@ export default function CreditNotesPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setInvoices(data.data || []);
+        setInvoices(data.data?.invoices || []);
       }
     } catch (error) {
       console.error('Fetch invoices error:', error);
