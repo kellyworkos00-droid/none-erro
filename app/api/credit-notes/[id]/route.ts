@@ -120,7 +120,7 @@ export async function PATCH(
         where: { id: params.id },
         data: {
           status: 'APPROVED',
-          approvedBy: user.id,
+          approvedBy: user.userId,
           approvedDate: new Date(),
         },
         include: {
