@@ -330,12 +330,12 @@ export async function DELETE(
     });
 
     // Audit log
-    await logAudit({
-      userId: user.id,
-      action: 'DELETE',
-      entity: 'CREDIT_NOTE',
+    await createAuditLog({
+      userId: user.userId,
+      action: 'DELETE_RECORD',
+      entityType: 'CreditNote',
       entityId: params.id,
-      details: `Deleted credit note ${creditNote.creditNoteNumber}`,
+      description: `Deleted credit note ${creditNote.creditNoteNumber}`,
     });
 
     return NextResponse.json({
