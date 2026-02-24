@@ -29,15 +29,6 @@ export async function GET(
     const expenses = await prisma.projectExpense.findMany({
       where: { projectId: params.id },
       orderBy: { date: 'desc' },
-      include: {
-        createdByUser: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
-      },
     });
 
     return NextResponse.json(
