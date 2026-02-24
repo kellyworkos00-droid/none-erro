@@ -274,18 +274,19 @@ export async function PATCH(
       success: true,
       data: updated,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('PATCH /api/credit-notes/[id] error:', error);
 
-    if (error.name === 'ZodError') {
+    if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: { message: 'Validation error', details: error.errors } },
         { status: 400 }
       );
     }
 
+    const message = error instanceof Error ? error.message : 'Failed to update credit note';
     return NextResponse.json(
-      { error: { message: error.message || 'Failed to update credit note' } },
+      { error: { message } },
       { status: 500 }
     );
   }

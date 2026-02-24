@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/authorization';
 import { createErrorResponse, createSuccessResponse } from '@/lib/utils';
 import prisma from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 
 /**
  * GET /api/reconciliation/dashboard
@@ -82,11 +83,7 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
-    type TopCustomerGroup = {
-      customerId: string;
-      _sum: { amount: number | null };
-      _count: { _all: number };
-    };
+    type TopCustomerGroup = Prisma.PaymentGroupByOutputType;
 
     // Get customer details for top customers
     const topCustomerIds = (topCustomers as TopCustomerGroup[]).map((c) => c.customerId);
@@ -96,11 +93,10 @@ export async function GET(request: NextRequest) {
     });
 
     const topCustomersWithDetails = (topCustomers as TopCustomerGroup[]).map((tc) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const customer = (customerDetails as any[]).find((c) => c.id === tc.customerId);
+      const customer = customerDetails.find((c) => c.id === tc.customerId);
       return {
         customer,
-        totalPaid: tc._sum.amount || 0,
+        totalPaid: Number(tc._sum.amount || 0),
         paymentsCount: tc._count._all,
       };
     });

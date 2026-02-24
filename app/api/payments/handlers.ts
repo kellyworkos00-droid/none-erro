@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * API Route: POST /api/payments
  * Record payments with multiple methods

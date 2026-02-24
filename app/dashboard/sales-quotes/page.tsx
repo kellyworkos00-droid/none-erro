@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus, X, FileText, Send, CheckCircle, XCircle, Clock, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -85,7 +85,7 @@ export default function SalesQuotesPage() {
     { productId: '', quantity: 1, unitPrice: 0, discount: 0 },
   ]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -130,11 +130,11 @@ export default function SalesQuotesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [customerFilter, statusFilter]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const handleFilter = () => {
     fetchData();

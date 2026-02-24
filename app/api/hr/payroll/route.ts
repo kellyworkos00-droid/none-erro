@@ -3,7 +3,6 @@
  * Payroll Processing
  */
 
-// @ts-nocheck
 import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requirePermission } from '@/lib/authorization';
@@ -120,13 +119,13 @@ export async function GET(request: NextRequest) {
 
     const summary = {
       total: payrolls.length,
-      totalGross: payrolls.reduce((sum: number, p: { grossPay: number }) => sum + p.grossPay, 0),
-      totalNet: payrolls.reduce((sum: number, p: { netPay: number }) => sum + p.netPay, 0),
-      totalDeductions: payrolls.reduce((sum: number, p: { totalDeductions: number }) => sum + p.totalDeductions, 0),
+      totalGross: payrolls.reduce((sum, payroll) => sum + payroll.grossPay, 0),
+      totalNet: payrolls.reduce((sum, payroll) => sum + payroll.netPay, 0),
+      totalDeductions: payrolls.reduce((sum, payroll) => sum + payroll.totalDeductions, 0),
       byStatus: {
-        draft: payrolls.filter((p: any) => p.status === 'DRAFT').length,
-        processed: payrolls.filter((p: any) => p.status === 'PROCESSED').length,
-        paid: payrolls.filter((p: any) => p.status === 'PAID').length,
+        draft: payrolls.filter((payroll) => payroll.status === 'DRAFT').length,
+        processed: payrolls.filter((payroll) => payroll.status === 'PROCESSED').length,
+        paid: payrolls.filter((payroll) => payroll.status === 'PAID').length,
       },
     };
 

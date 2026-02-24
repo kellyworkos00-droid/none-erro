@@ -1,7 +1,6 @@
-// @ts-nocheck
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Plus, X, FileText, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -119,7 +118,7 @@ export default function CreditNotesPage() {
     notes: '',
   }]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -155,9 +154,9 @@ export default function CreditNotesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, typeFilter, customerFilter]);
 
-  const fetchInvoices = async (custId: string) => {
+  const fetchInvoices = useCallback(async (custId: string) => {
     if (!custId) {
       setInvoices([]);
       return;
@@ -176,17 +175,17 @@ export default function CreditNotesPage() {
     } catch (error) {
       console.error('Fetch invoices error:', error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   useEffect(() => {
     if (customerId) {
       fetchInvoices(customerId);
     }
-  }, [customerId]);
+  }, [customerId, fetchInvoices]);
 
   const handleFilter = () => {
     fetchData();

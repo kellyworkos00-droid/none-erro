@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import type { Notification, NotificationPreference, Prisma } from '@prisma/client';
 import { sendEmail } from '@/lib/email-service';
 import { broadcastNotification } from '@/lib/websocket-manager';
 
@@ -36,7 +37,7 @@ export interface CreateNotificationParams {
   category?: string;
   relatedEntityId?: string;
   relatedEntityType?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   actionUrl?: string;
   sendEmail?: boolean;
 }
@@ -51,15 +52,31 @@ export interface NotificationPayload {
   isRead: boolean;
   actionUrl?: string;
   createdAt: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
+
+type NotificationPreferenceUpdates = Partial<Pick<
+  NotificationPreference,
+  | 'enablePush'
+  | 'enableEmail'
+  | 'enableInApp'
+  | 'reconciliationAlerts'
+  | 'paymentAlerts'
+  | 'approvalAlerts'
+  | 'exceptionAlerts'
+  | 'systemAlerts'
+  | 'quietHoursStart'
+  | 'quietHoursEnd'
+  | 'enableDigest'
+  | 'digestFrequency'
+>>;
 
 /**
  * Create a notification for a user
  */
 export async function createNotification(
   params: CreateNotificationParams
-): Promise<any> {
+): Promise<Notification | null> {
   try {
     // Check user preferences
     const preferences = await prisma.notificationPreference.findUnique({
@@ -141,7 +158,7 @@ export async function createNotification(
 export async function createBulkNotifications(
   userIds: string[],
   params: Omit<CreateNotificationParams, 'userId'>
-): Promise<any[]> {
+): Promise<Array<Notification | null>> {
   const notifications = await Promise.all(
     userIds.map((userId) =>
       createNotification({
@@ -156,7 +173,7 @@ export async function createBulkNotifications(
 /**
  * Mark notification as read
  */
-export async function markNotificationAsRead(notificationId: string): Promise<any> {
+export async function markNotificationAsRead(notificationId: string): Promise<Notification> {
   return prisma.notification.update({
     where: { id: notificationId },
     data: {
@@ -169,7 +186,7 @@ export async function markNotificationAsRead(notificationId: string): Promise<an
 /**
  * Mark all notifications as read for a user
  */
-export async function markAllNotificationsAsRead(userId: string): Promise<any> {
+export async function markAllNotificationsAsRead(userId: string): Promise<Prisma.BatchPayload> {
   return prisma.notification.updateMany({
     where: { userId, isRead: false },
     data: {
@@ -182,10 +199,19 @@ export async function markAllNotificationsAsRead(userId: string): Promise<any> {
 /**
  * Get user notifications with pagination
  */
-export async function getUserNotifications(userId: string, options = {} as any) {
+export async function getUserNotifications(
+  userId: string,
+  options: {
+    skip?: number;
+    take?: number;
+    isRead?: boolean;
+    type?: string;
+    severity?: string;
+  } = {}
+) {
   const { skip = 0, take = 20, isRead, type, severity } = options;
 
-  const where: any = { userId };
+  const where: Prisma.NotificationWhereInput = { userId };
   if (isRead !== undefined) where.isRead = isRead;
   if (type) where.type = type;
   if (severity) where.severity = severity;
@@ -215,7 +241,7 @@ export async function getUnreadNotificationCount(userId: string): Promise<number
 /**
  * Delete notification
  */
-export async function deleteNotification(notificationId: string): Promise<any> {
+export async function deleteNotification(notificationId: string): Promise<Notification> {
   return prisma.notification.delete({
     where: { id: notificationId },
   });
@@ -224,7 +250,7 @@ export async function deleteNotification(notificationId: string): Promise<any> {
 /**
  * Delete old notifications (cleanup)
  */
-export async function deleteOldNotifications(daysOld: number = 30): Promise<any> {
+export async function deleteOldNotifications(daysOld: number = 30): Promise<Prisma.BatchPayload> {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysOld);
 
@@ -239,7 +265,7 @@ export async function deleteOldNotifications(daysOld: number = 30): Promise<any>
 /**
  * Get notification preferences for user
  */
-export async function getNotificationPreferences(userId: string): Promise<any> {
+export async function getNotificationPreferences(userId: string): Promise<NotificationPreference> {
   let preferences = await prisma.notificationPreference.findUnique({
     where: { userId },
   });
@@ -261,8 +287,8 @@ export async function getNotificationPreferences(userId: string): Promise<any> {
  */
 export async function updateNotificationPreferences(
   userId: string,
-  updates: Partial<any>
-): Promise<any> {
+  updates: NotificationPreferenceUpdates
+): Promise<NotificationPreference> {
   return prisma.notificationPreference.upsert({
     where: { userId },
     create: { userId, ...updates },

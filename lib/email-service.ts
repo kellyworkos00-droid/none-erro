@@ -39,7 +39,7 @@ export interface EmailOptions {
   actionUrl?: string;
   actionText?: string;
   recipientName?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   html?: string;
 }
 
@@ -236,7 +236,7 @@ export async function sendExceptionAlertEmail(
   alertType: string,
   description: string,
   severity: string,
-  details: Record<string, any>,
+  details: Record<string, unknown>,
   actionUrl?: string
 ): Promise<void> {
   await sendEmail({

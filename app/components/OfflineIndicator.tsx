@@ -39,7 +39,7 @@ export const OfflineIndicator: React.FC = () => {
           clipRule="evenodd"
         />
       </svg>
-      <span className="font-medium">You're offline. Some features may be limited.</span>
+      <span className="font-medium">You&apos;re offline. Some features may be limited.</span>
     </div>
   );
 };

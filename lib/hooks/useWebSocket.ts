@@ -9,6 +9,32 @@ interface WebSocketHookOptions {
   autoConnect?: boolean;
 }
 
+type NotificationPayload = {
+  title: string;
+  message: string;
+  severity?: 'CRITICAL' | 'ERROR' | 'WARNING' | 'INFO' | string;
+};
+
+type ReconciliationStatus = {
+  status: 'completed' | 'failed' | string;
+  error?: string;
+};
+
+type MatchingProgress = {
+  percentageComplete: number;
+  currentPhase: string;
+};
+
+type AlertPayload = {
+  title: string;
+  message: string;
+  severity?: 'CRITICAL' | 'ERROR' | 'WARNING' | 'INFO' | string;
+};
+
+type SystemNotification = {
+  message: string;
+};
+
 export function useWebSocket(userId?: string, options: WebSocketHookOptions = {}) {
   const { enabled = true, autoConnect = true } = options;
   const [isConnected, setIsConnected] = useState(false);
@@ -49,31 +75,31 @@ export function useWebSocket(userId?: string, options: WebSocketHookOptions = {}
         });
 
         // Handle incoming notifications
-        newSocket.on('notification:new', (notification: any) => {
+        newSocket.on('notification:new', (notification: NotificationPayload) => {
           console.log('📬 New notification:', notification);
           handleNewNotification(notification);
         });
 
         // Handle reconciliation status updates
-        newSocket.on('reconciliation:update', (status: any) => {
+        newSocket.on('reconciliation:update', (status: ReconciliationStatus) => {
           console.log('📊 Reconciliation update:', status);
           handleReconciliationUpdate(status);
         });
 
         // Handle matching progress
-        newSocket.on('matching:progress', (progress: any) => {
+        newSocket.on('matching:progress', (progress: MatchingProgress) => {
           console.log('🔄 Matching progress:', progress);
           handleMatchingProgress(progress);
         });
 
         // Handle alerts
-        newSocket.on('alert:new', (alert: any) => {
+        newSocket.on('alert:new', (alert: AlertPayload) => {
           console.log('🚨 New alert:', alert);
           handleNewAlert(alert);
         });
 
         // Handle system notifications
-        newSocket.on('system:notification', (notification: any) => {
+        newSocket.on('system:notification', (notification: SystemNotification) => {
           console.log('📢 System notification:', notification);
           handleSystemNotification(notification);
         });
@@ -103,7 +129,7 @@ export function useWebSocket(userId?: string, options: WebSocketHookOptions = {}
     };
   }, [enabled, userId, autoConnect]);
 
-  const handleNewNotification = (notification: any) => {
+  const handleNewNotification = (notification: NotificationPayload) => {
     // Show a subtle toast notification
     if (notification.severity === 'CRITICAL') {
       toast.error(notification.title);
@@ -116,7 +142,7 @@ export function useWebSocket(userId?: string, options: WebSocketHookOptions = {}
     }
   };
 
-  const handleReconciliationUpdate = (status: any) => {
+  const handleReconciliationUpdate = (status: ReconciliationStatus) => {
     if (status.status === 'completed') {
       toast.success('Reconciliation completed successfully!');
     } else if (status.status === 'failed') {
@@ -124,13 +150,13 @@ export function useWebSocket(userId?: string, options: WebSocketHookOptions = {}
     }
   };
 
-  const handleMatchingProgress = (progress: any) => {
+  const handleMatchingProgress = (progress: MatchingProgress) => {
     console.log(
       `Matching progress: ${progress.percentageComplete}% - Phase: ${progress.currentPhase}`
     );
   };
 
-  const handleNewAlert = (alert: any) => {
+  const handleNewAlert = (alert: AlertPayload) => {
     if (alert.severity === 'CRITICAL') {
       toast.error(`🚨 ${alert.title}: ${alert.message}`);
     } else if (alert.severity === 'ERROR') {
@@ -138,13 +164,13 @@ export function useWebSocket(userId?: string, options: WebSocketHookOptions = {}
     }
   };
 
-  const handleSystemNotification = (notification: any) => {
+  const handleSystemNotification = (notification: SystemNotification) => {
     toast(notification.message, {
       icon: '📢',
     });
   };
 
-  const sendMessage = (event: string, data?: any) => {
+  const sendMessage = (event: string, data?: unknown) => {
     if (socketRef.current?.connected) {
       socketRef.current.emit(event, data);
     }

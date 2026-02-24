@@ -154,8 +154,7 @@ export async function generateAgingReport(asOfDate: Date = new Date()): Promise<
  */
 export async function generateCashFlowForecast(
   startDate: Date,
-  endDate: Date,
-  options = {} as any
+  endDate: Date
 ): Promise<CashFlowData[]> {
   try {
     const cashFlowData: CashFlowData[] = [];

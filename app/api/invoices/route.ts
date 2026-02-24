@@ -41,8 +41,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Calculate accurate status for each invoice based on actual payment amounts
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const invoicesWithAccurateStatus = (invoices as any[]).map((invoice) => {
+    const invoicesWithAccurateStatus = invoices.map((invoice) => {
       let calculatedStatus = 'SENT';
       // Only mark as PAID if payment is confirmed in invoice module
       if (invoice.payments && invoice.payments.length > 0) {

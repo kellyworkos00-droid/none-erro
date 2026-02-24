@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { verifyAuth } from '@/lib/auth';
 import { errorResponse, successResponse } from '@/lib/response';
 
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     return successResponse({
       data: {
         message: 'WebSocket connection available',
-        userId: user.id,
+        userId: user.userId,
         socketUrl: process.env.NEXT_PUBLIC_SOCKET_URL || `${process.env.NEXT_PUBLIC_APP_URL || ''}`,
       },
     });

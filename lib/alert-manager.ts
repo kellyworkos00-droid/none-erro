@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import type { AlertInstance, AlertRule, Prisma } from '@prisma/client';
 import { createNotification, NotificationType, NotificationSeverity } from '@/lib/notification-service';
 import { broadcastAlert } from '@/lib/websocket-manager';
 
@@ -19,9 +20,13 @@ export interface AlertTriggerParams {
   eventType: AlertEventType | string;
   relatedEntityId?: string;
   relatedEntityType?: string;
-  values: Record<string, any>; // Dynamic values to check against conditions
+  values: Record<string, unknown>; // Dynamic values to check against conditions
   userId?: string; // Optional specific user to alert
 }
+
+type AlertInstanceWithRule = Prisma.AlertInstanceGetPayload<{
+  include: { alertRule: true };
+}>;
 
 /**
  * Trigger alerts based on event type and conditions
@@ -38,7 +43,8 @@ export async function triggerAlerts(params: AlertTriggerParams): Promise<void> {
 
     for (const rule of rules) {
       // Check if conditions match
-      if (evaluateConditions(rule.triggerCondition as any, params.values)) {
+      const conditions = (rule.triggerCondition || {}) as Record<string, unknown>;
+      if (evaluateConditions(conditions, params.values)) {
         // Create alert instance
         const alertInstance = await prisma.alertInstance.create({
           data: {
@@ -72,7 +78,10 @@ export async function triggerAlerts(params: AlertTriggerParams): Promise<void> {
 /**
  * Evaluate conditions against values
  */
-function evaluateConditions(conditions: Record<string, any>, values: Record<string, any>): boolean {
+function evaluateConditions(
+  conditions: Record<string, unknown>,
+  values: Record<string, unknown>
+): boolean {
   for (const [key, condition] of Object.entries(conditions)) {
     const value = values[key];
 
@@ -81,9 +90,9 @@ function evaluateConditions(conditions: Record<string, any>, values: Record<stri
     }
 
     // Support various comparison operators
-    if (typeof condition === 'object') {
+    if (typeof condition === 'object' && condition !== null && !Array.isArray(condition)) {
       // Handle nested conditions like { "gt": 10000, "lt": 50000 }
-      for (const [operator, operand] of Object.entries(condition)) {
+      for (const [operator, operand] of Object.entries(condition as Record<string, unknown>)) {
         if (!evaluateOperator(value, operator, operand)) {
           return false;
         }
@@ -99,24 +108,24 @@ function evaluateConditions(conditions: Record<string, any>, values: Record<stri
 /**
  * Evaluate a single comparison operator
  */
-function evaluateOperator(value: any, operator: string, operand: any): boolean {
+function evaluateOperator(value: unknown, operator: string, operand: unknown): boolean {
   switch (operator) {
     case 'eq':
       return value === operand;
     case 'ne':
       return value !== operand;
     case 'gt':
-      return value > operand;
+      return Number(value) > Number(operand);
     case 'gte':
-      return value >= operand;
+      return Number(value) >= Number(operand);
     case 'lt':
-      return value < operand;
+      return Number(value) < Number(operand);
     case 'lte':
-      return value <= operand;
+      return Number(value) <= Number(operand);
     case 'in':
-      return Array.isArray(operand) && operand.includes(value);
+      return Array.isArray(operand) && operand.includes(value as never);
     case 'nin':
-      return !Array.isArray(operand) || !operand.includes(value);
+      return !Array.isArray(operand) || !operand.includes(value as never);
     case 'contains':
       return String(value).includes(String(operand));
     case 'startsWith':
@@ -132,8 +141,8 @@ function evaluateOperator(value: any, operator: string, operand: any): boolean {
  * Notify users for an alert
  */
 async function notifyUsersForAlert(
-  rule: any,
-  alertInstance: any,
+  rule: AlertRule,
+  alertInstance: AlertInstance,
   params: AlertTriggerParams
 ): Promise<void> {
   try {
@@ -184,7 +193,7 @@ async function notifyUsersForAlert(
         type: params.eventType,
         title: alertInstance.title,
         message: alertInstance.message,
-        severity: mapSeverity(alertInstance.severity) as any,
+        severity: mapSeverity(alertInstance.severity),
         timestamp: new Date(),
       });
     }
@@ -216,7 +225,7 @@ function mapSeverity(priority: string): NotificationSeverity {
  */
 async function sendWebhook(
   webhookUrl: string,
-  alertInstance: any,
+  alertInstance: AlertInstance,
   params: AlertTriggerParams
 ): Promise<void> {
   try {
@@ -339,7 +348,10 @@ export async function createDefaultAlertRules(): Promise<void> {
 /**
  * Acknowledge/resolve alert
  */
-export async function acknowledgeAlert(alertId: string, userId: string): Promise<any> {
+export async function acknowledgeAlert(
+  alertId: string,
+  userId: string
+): Promise<AlertInstance> {
   return prisma.alertInstance.update({
     where: { id: alertId },
     data: {
@@ -353,7 +365,7 @@ export async function acknowledgeAlert(alertId: string, userId: string): Promise
 /**
  * Resolve alert
  */
-export async function resolveAlert(alertId: string): Promise<any> {
+export async function resolveAlert(alertId: string): Promise<AlertInstance> {
   return prisma.alertInstance.update({
     where: { id: alertId },
     data: {
@@ -366,10 +378,18 @@ export async function resolveAlert(alertId: string): Promise<any> {
 /**
  * Get active alerts for display
  */
-export async function getActiveAlerts(options = {} as any) {
+export async function getActiveAlerts(
+  options: {
+    skip?: number;
+    take?: number;
+    userId?: string;
+    severity?: string;
+    eventType?: string;
+  } = {}
+): Promise<AlertInstanceWithRule[]> {
   const { skip = 0, take = 50, userId, severity, eventType } = options;
 
-  const where: any = {
+  const where: Prisma.AlertInstanceWhereInput = {
     status: { in: ['ACTIVE', 'ACKNOWLEDGED'] },
   };
 

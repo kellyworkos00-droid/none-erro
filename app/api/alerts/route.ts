@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { verifyAuth } from '@/lib/auth';
 import { getActiveAlerts, acknowledgeAlert, resolveAlert } from '@/lib/alert-manager';
 import { errorResponse, successResponse } from '@/lib/response';

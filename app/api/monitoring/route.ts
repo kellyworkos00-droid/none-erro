@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * GET /api/monitoring/metrics
  * Monitoring and Analytics Endpoint
@@ -30,10 +29,11 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type') || 'summary'; // summary, detailed, logs, performance
 
     switch (type) {
-      case 'summary':
+      case 'summary': {
         return api.success(getPerformanceSummary(), 'Performance summary');
+      }
 
-      case 'detailed':
+      case 'detailed': {
         return api.success(
           {
             performance: getPerformanceSummary(),
@@ -42,8 +42,9 @@ export async function GET(request: NextRequest) {
           },
           'Detailed metrics'
         );
+      }
 
-      case 'logs':
+      case 'logs': {
         const logLevel = searchParams.get('level') as LogLevel | null;
         const logCategory = searchParams.get('category') as LogCategory | null;
         const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 1000);
@@ -62,16 +63,18 @@ export async function GET(request: NextRequest) {
           },
           'System logs'
         );
+      }
 
-      case 'performance':
+      case 'performance': {
         return api.success(createPerformanceReport(), 'Performance report');
+      }
 
-      case 'health':
+      case 'health': {
         const summary = getPerformanceSummary();
         const apiMetrics = getApiMetrics();
-        
-        const unhealthyEndpoints = (Array.isArray(apiMetrics) 
-          ? apiMetrics 
+
+        const unhealthyEndpoints = (Array.isArray(apiMetrics)
+          ? apiMetrics
           : [apiMetrics]
         ).filter((m) => m.errorRate > 0.05);
 
@@ -87,11 +90,11 @@ export async function GET(request: NextRequest) {
         };
 
         return api.success(health, 'Health check');
+      }
 
-      default:
-        return api.error(
-          new ValidationError('Invalid metrics type')
-        );
+      default: {
+        return api.error(new ValidationError('Invalid metrics type'));
+      }
     }
   } catch (error) {
     if (error instanceof Error && error.message.includes('Permission')) {
@@ -113,25 +116,26 @@ export async function POST(request: NextRequest) {
     const { action } = await request.json();
 
     switch (action) {
-      case 'export-logs':
+      case 'export-logs': {
         const { format = 'json' } = await request.json();
         // Implementation would export logs
         return api.success(
           { message: 'Log export queued', format },
           'Export initiated'
         );
+      }
 
-      case 'clear-cache':
+      case 'clear-cache': {
         // Implementation would clear caches
         return api.success(
           { message: 'Caches cleared', timestamp: new Date() },
           'Cache cleared'
         );
+      }
 
-      default:
-        return api.error(
-          new ValidationError('Invalid action')
-        );
+      default: {
+        return api.error(new ValidationError('Invalid action'));
+      }
     }
   } catch (error) {
     throw error;

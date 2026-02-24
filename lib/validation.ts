@@ -3,8 +3,7 @@
  * Type-safe validation with comprehensive error handling
  */
 
-// @ts-nocheck
-import {  z, ZodSchema, SafeParseError } from 'zod';
+import { z, ZodSchema, SafeParseError } from 'zod';
 
 /**
  * Parse and validate request body

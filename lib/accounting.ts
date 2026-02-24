@@ -275,8 +275,7 @@ export async function reverseLedgerTransaction(
     throw new Error('Transaction not found');
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if ((originalEntries as any[]).some((entry) => entry.isReversed)) {
+  if (originalEntries.some((entry) => entry.isReversed)) {
     throw new Error('Transaction has already been reversed');
   }
 

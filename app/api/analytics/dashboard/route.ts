@@ -1,11 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { verifyAuth } from '@/lib/auth';
-import {
-  generateAgingReport,
-  generateCashFlowForecast,
-  getDashboardMetrics,
-  calculateFinancialRatios,
-} from '@/lib/analytics-service';
+import { getDashboardMetrics } from '@/lib/analytics-service';
 import { errorResponse, successResponse } from '@/lib/response';
 
 /**

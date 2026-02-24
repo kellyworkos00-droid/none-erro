@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, XCircle, CheckCircle, X, ChevronDown } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -26,13 +26,7 @@ export function AlertsPanel({ maxVisible = 3 }: AlertsPanelProps) {
   const [loading, setLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  useEffect(() => {
-    fetchAlerts();
-    const interval = setInterval(fetchAlerts, 60000); // Refresh every minute
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchAlerts = async () => {
+  const fetchAlerts = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch('/api/alerts?take=10');
@@ -45,7 +39,13 @@ export function AlertsPanel({ maxVisible = 3 }: AlertsPanelProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchAlerts();
+    const interval = setInterval(fetchAlerts, 60000); // Refresh every minute
+    return () => clearInterval(interval);
+  }, [fetchAlerts]);
 
   const handleAcknowledge = async (alertId: string) => {
     try {

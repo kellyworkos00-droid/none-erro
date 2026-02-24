@@ -1,9 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
   PieChart,
@@ -18,7 +16,6 @@ import {
   Area,
   AreaChart,
 } from 'recharts';
-import { format } from 'date-fns';
 
 interface DashboardMetrics {
   totalRevenue: number;
@@ -80,6 +77,13 @@ const FinancialRatioCard: React.FC<{ label: string; value: number; benchmark?: n
   );
 };
 
+type PieLabelProps = {
+  name?: string;
+  value?: number;
+};
+
+const formatCurrency = (value: number) => `$${value.toLocaleString()}`;
+
 export const AnalyticsDashboard: React.FC = () => {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -105,7 +109,7 @@ export const AnalyticsDashboard: React.FC = () => {
     { name: '90+ Days', value: 8000, count: 2 },
   ]);
 
-  const fetchMetrics = async () => {
+  const fetchMetrics = useCallback(async () => {
     try {
       setRefreshing(true);
       const response = await fetch('/api/analytics/dashboard');
@@ -124,13 +128,13 @@ export const AnalyticsDashboard: React.FC = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchMetrics();
     const interval = setInterval(fetchMetrics, 30000); // Refresh every 30 seconds
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchMetrics]);
 
   const handleExport = async (format: 'pdf' | 'xlsx') => {
     try {
@@ -297,7 +301,7 @@ export const AnalyticsDashboard: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
-                <Tooltip formatter={(value: any) => `$${(value as number).toLocaleString()}`} />
+                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                 <Legend />
                 <Area
                   type="monotone"
@@ -322,7 +326,9 @@ export const AnalyticsDashboard: React.FC = () => {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, value }: any) => `${name}: $${((value as number) / 1000).toFixed(0)}K`}
+                  label={({ name, value }: PieLabelProps) =>
+                    `${name}: $${(Number(value || 0) / 1000).toFixed(0)}K`
+                  }
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
@@ -331,7 +337,7 @@ export const AnalyticsDashboard: React.FC = () => {
                     <Cell key={`cell-${index}`} fill={Object.values(COLORS)[index % Object.values(COLORS).length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: any) => `$${(value as number).toLocaleString()}`} />
+                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -360,7 +366,7 @@ export const AnalyticsDashboard: React.FC = () => {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
               <YAxis />
-              <Tooltip formatter={(value: any) => `$${(value as number).toLocaleString()}`} />
+              <Tooltip formatter={(value) => formatCurrency(Number(value))} />
               <Legend />
               <Bar dataKey="inflows" fill={COLORS.success} name="Revenue" />
               <Bar dataKey="outflows" fill={COLORS.danger} name="Expenses" />

@@ -3,7 +3,6 @@
  * Leave Management
  */
 
-// @ts-nocheck
 import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requirePermission } from '@/lib/authorization';
@@ -69,12 +68,12 @@ export async function GET(request: NextRequest) {
 
     const summary = {
       total: leaves.length,
-      pending: leaves.filter((l: any) => l.status === 'PENDING').length,
-      approved: leaves.filter((l: any) => l.status === 'APPROVED').length,
-      rejected: leaves.filter((l: any) => l.status === 'REJECTED').length,
+      pending: leaves.filter((leave) => leave.status === 'PENDING').length,
+      approved: leaves.filter((leave) => leave.status === 'APPROVED').length,
+      rejected: leaves.filter((leave) => leave.status === 'REJECTED').length,
       totalDays: leaves
-        .filter((l: any) => l.status === 'APPROVED')
-        .reduce((sum: number, l: { daysRequested: number }) => sum + l.daysRequested, 0),
+        .filter((leave) => leave.status === 'APPROVED')
+        .reduce((sum, leave) => sum + leave.daysRequested, 0),
     };
 
     return api.success(

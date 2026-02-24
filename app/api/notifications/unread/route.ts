@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { verifyAuth } from '@/lib/auth';
 import { getUnreadNotificationCount } from '@/lib/notification-service';
 import { errorResponse, successResponse } from '@/lib/response';
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       return errorResponse('Unauthorized', 401);
     }
 
-    const unreadCount = await getUnreadNotificationCount(user.id);
+    const unreadCount = await getUnreadNotificationCount(user.userId);
 
     return successResponse({
       data: { unreadCount },

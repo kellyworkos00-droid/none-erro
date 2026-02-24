@@ -205,6 +205,30 @@ export const createStockTransferSchema = z.object({
     .min(1, 'At least one item is required'),
 });
 
+export const createProductReturnSchema = z.object({
+  returnType: z.enum(['CUSTOMER_RETURN', 'SUPPLIER_RETURN', 'DAMAGED', 'WARRANTY']),
+  referenceType: z.string().optional().nullable(),
+  referenceId: z.string().optional().nullable(),
+  customerId: z.string().cuid('Invalid customer ID').optional(),
+  supplierId: z.string().cuid('Invalid supplier ID').optional(),
+  reason: z.string().min(1, 'Reason is required').max(500),
+  restockFee: z.number().nonnegative('Restock fee cannot be negative').optional(),
+  notes: z.string().max(1000).optional(),
+  items: z
+    .array(
+      z.object({
+        productId: z.string().cuid('Invalid product ID'),
+        locationId: z.string().cuid('Invalid location ID'),
+        quantity: z.number().int().positive('Quantity must be positive'),
+        unitPrice: z.number().nonnegative('Unit price cannot be negative'),
+        condition: z.string().optional(),
+        restockable: z.boolean().optional(),
+        notes: z.string().max(500).optional(),
+      })
+    )
+    .min(1, 'At least one item is required'),
+});
+
 // ============================================================================
 // EXPENSE SCHEMAS
 // ============================================================================

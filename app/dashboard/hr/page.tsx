@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Users, DollarSign, Calendar, TrendingUp, Plus, X, Check, FileText, UserPlus, Building2 } from 'lucide-react';
 
 interface Employee {
@@ -88,11 +88,7 @@ export default function HRPage() {
     reason: '',
   });
 
-  useEffect(() => {
-    fetchData();
-  }, [activeTab]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
@@ -138,7 +134,11 @@ export default function HRPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleCreateEmployee = async (e: React.FormEvent) => {
     e.preventDefault();

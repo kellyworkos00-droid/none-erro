@@ -3,7 +3,6 @@
  * Single Employee Operations
  */
 
-// @ts-nocheck
 import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requirePermission } from '@/lib/authorization';

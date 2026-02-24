@@ -4,6 +4,22 @@ import 'jspdf-autotable';
 import { AgingReport, CashFlowData, FinancialRatio, DashboardMetrics } from '@/lib/analytics-service';
 import { Decimal } from 'decimal.js';
 
+type AutoTableDrawData = {
+  pageNumber: number;
+};
+
+type AutoTableOptions = {
+  head: string[][];
+  body: string[][];
+  startY?: number;
+  margin?: { top: number; right: number; bottom: number; left: number };
+  didDrawPage?: (data: AutoTableDrawData) => void;
+};
+
+function getAutoTable(doc: jsPDF): (options: AutoTableOptions) => void {
+  return (doc as unknown as { autoTable: (options: AutoTableOptions) => void }).autoTable;
+}
+
 /**
  * Export Service
  * Handles PDF and Excel export functionality with professional formatting
@@ -293,12 +309,12 @@ export async function exportAgingReportToPDF(
       '100.00%',
     ]);
 
-    (doc as any).autoTable({
+    getAutoTable(doc)({
       head: [['Aging Range', 'Invoice Count', 'Total Amount', 'Percentage']],
       body: tableData,
       startY: 40,
       margin: { top: 10, right: 10, bottom: 10, left: 10 },
-      didDrawPage: (data: any) => {
+      didDrawPage: (data: AutoTableDrawData) => {
         // Footer
         const pageCount = doc.getNumberOfPages();
         doc.setFontSize(8);
@@ -347,12 +363,12 @@ export async function exportCashFlowToPDF(
       `$${cf.cumulativeBalance.toFixed(2)}`,
     ]);
 
-    (doc as any).autoTable({
+    getAutoTable(doc)({
       head: [['Date', 'Inflows', 'Outflows', 'Net Flow', 'Cumulative Balance']],
       body: tableData,
       startY: 42,
       margin: { top: 10, right: 10, bottom: 10, left: 10 },
-      didDrawPage: (data: any) => {
+      didDrawPage: (data: AutoTableDrawData) => {
         const pageCount = doc.getNumberOfPages();
         doc.setFontSize(8);
         doc.text(
@@ -400,7 +416,7 @@ export async function exportDashboardToPDF(
       ['Accounts Payable', `$${metrics.accountsPayable.toFixed(2)}`],
     ];
 
-    (doc as any).autoTable({
+    getAutoTable(doc)({
       head: [['Metric', 'Amount']],
       body: financialData,
       startY: 42,
@@ -423,7 +439,7 @@ export async function exportDashboardToPDF(
       ['Profit Margin', (metrics.metrics.profitMargin * 100).toFixed(2) + '%'],
     ];
 
-    (doc as any).autoTable({
+    getAutoTable(doc)({
       head: [['Ratio', 'Value']],
       body: ratioData,
       startY: 35,
@@ -443,20 +459,28 @@ export async function exportDashboardToPDF(
 export async function exportReport(
   format: 'pdf' | 'xlsx',
   reportType: 'aging' | 'cashflow' | 'dashboard',
-  data: any
+  data: AgingReport | CashFlowData[] | DashboardMetrics
 ): Promise<Buffer> {
   try {
     switch (reportType) {
-      case 'aging':
+      case 'aging': {
+        const agingData = data as AgingReport;
         return format === 'pdf'
-          ? await exportAgingReportToPDF(data)
-          : await exportAgingReportToExcel(data);
-      case 'cashflow':
-        return format === 'pdf' ? await exportCashFlowToPDF(data) : await exportCashFlowToExcel(data);
-      case 'dashboard':
+          ? await exportAgingReportToPDF(agingData)
+          : await exportAgingReportToExcel(agingData);
+      }
+      case 'cashflow': {
+        const cashflowData = data as CashFlowData[];
         return format === 'pdf'
-          ? await exportDashboardToPDF(data)
-          : await exportDashboardToExcel(data);
+          ? await exportCashFlowToPDF(cashflowData)
+          : await exportCashFlowToExcel(cashflowData);
+      }
+      case 'dashboard': {
+        const dashboardData = data as DashboardMetrics;
+        return format === 'pdf'
+          ? await exportDashboardToPDF(dashboardData)
+          : await exportDashboardToExcel(dashboardData);
+      }
       default:
         throw new Error('Unknown report type');
     }

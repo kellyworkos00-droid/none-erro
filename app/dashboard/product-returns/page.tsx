@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Plus, X, Package, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -9,6 +9,7 @@ interface Product {
   sku: string;
   name: string;
   unit: string;
+  price?: number;
 }
 
 interface ReturnItem {
@@ -99,7 +100,7 @@ export default function ProductReturnsPage() {
     notes: '',
   }]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -134,11 +135,11 @@ export default function ProductReturnsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, typeFilter]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const handleFilter = () => {
     fetchData();
@@ -567,7 +568,7 @@ export default function ProductReturnsPage() {
                               const product = products.find(p => p.id === e.target.value);
                               updateItem(index, {
                                 productId: e.target.value,
-                                unitPrice: product ? (product as any).price || 0 : 0,
+                                unitPrice: product ? product.price ?? 0 : 0,
                               });
                             }}
                             className="w-full border border-gray-300 rounded px-2 py-1 text-sm"

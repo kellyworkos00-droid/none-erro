@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ArrowUpCircle, ArrowDownCircle, Package, Filter, Download } from 'lucide-react';
 
 interface Product {
@@ -65,7 +65,7 @@ export default function StockMovementsPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  const fetchMovements = async () => {
+  const fetchMovements = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -94,11 +94,11 @@ export default function StockMovementsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [movementType, startDate, endDate]);
 
   useEffect(() => {
     fetchMovements();
-  }, []);
+  }, [fetchMovements]);
 
   const handleFilter = () => {
     fetchMovements();

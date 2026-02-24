@@ -7,7 +7,12 @@ interface ServiceWorkerStatus {
   isRegistered: boolean;
   isOnline: boolean;
   isInstallable: boolean;
-  deferredPrompt?: any;
+  deferredPrompt?: BeforeInstallPromptEvent | null;
+}
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
 export const useServiceWorker = () => {
@@ -65,7 +70,7 @@ export const useServiceWorker = () => {
     window.addEventListener('offline', handleOffline);
 
     // Listen for beforeinstallprompt event
-    const handleBeforeInstallPrompt = (event: Event) => {
+    const handleBeforeInstallPrompt = (event: BeforeInstallPromptEvent) => {
       event.preventDefault();
       setStatus((prev) => ({
         ...prev,

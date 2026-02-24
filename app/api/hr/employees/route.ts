@@ -3,7 +3,6 @@
  * Employee Management
  */
 
-// @ts-nocheck
 import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requirePermission } from '@/lib/authorization';
@@ -74,7 +73,7 @@ export async function GET(request: NextRequest) {
       {
         employees,
         total: employees.length,
-        active: employees.filter((e: any) => e.employmentStatus === 'ACTIVE').length,
+        active: employees.filter((employee) => employee.employmentStatus === 'ACTIVE').length,
       },
       'Employees retrieved successfully'
     );

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import { requireRoles } from '@/lib/authorization';
 import { createErrorResponse, createSuccessResponse } from '@/lib/utils';
 import prisma from '@/lib/prisma';
@@ -127,7 +128,7 @@ export async function PUT(
       );
     }
 
-    const updateData: any = { ...parsed.data };
+    const updateData: Prisma.ProjectUpdateInput = { ...parsed.data };
     
     // Convert date strings to Date objects
     if (updateData.startDate) updateData.startDate = new Date(updateData.startDate);

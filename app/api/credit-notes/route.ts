@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { verifyAuth } from '@/lib/auth';
 import { createCreditNoteSchema } from '@/lib/validations';
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
     const creditNoteType = searchParams.get('creditNoteType');
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 100;
 
-    const where: any = {};
+    const where: Prisma.CreditNoteWhereInput = {};
     if (customerId) where.customerId = customerId;
     if (invoiceId) where.invoiceId = invoiceId;
     if (status) where.status = status;
@@ -212,18 +213,19 @@ export async function POST(request: NextRequest) {
       success: true,
       data: creditNote,
     }, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('POST /api/credit-notes error:', error);
-    
-    if (error.name === 'ZodError') {
+
+    if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: { message: 'Validation error', details: error.errors } },
         { status: 400 }
       );
     }
 
+    const message = error instanceof Error ? error.message : 'Failed to create credit note';
     return NextResponse.json(
-      { error: { message: error.message || 'Failed to create credit note' } },
+      { error: { message } },
       { status: 500 }
     );
   }

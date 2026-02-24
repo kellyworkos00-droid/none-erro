@@ -4,7 +4,13 @@
  */
 
 import prisma from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 import { calculateInvoiceStatus, InvoiceStatus, isInvoiceNotPaid } from '@/lib/payment-methods';
+
+type InvoiceWithPayments = Prisma.InvoiceGetPayload<{ include: { payments: true } }>;
+type InvoiceWithCustomerAndPayments = Prisma.InvoiceGetPayload<{
+  include: { customer: true; payments: true };
+}>;
 
 /**
  * Calculate and update invoice status based on actual payments
@@ -103,7 +109,7 @@ export async function getCustomerInvoicesWithAccurateStatus(customerId: string) 
     orderBy: { issueDate: 'desc' },
   });
 
-  return invoices.map((invoice: any) => {
+  return invoices.map((invoice: InvoiceWithPayments) => {
     const actualPaidAmount = invoice.payments.reduce((sum: number, p: { amount: number }) => sum + p.amount, 0);
     const actualStatus = calculateInvoiceStatus(
       invoice.totalAmount,
@@ -144,7 +150,7 @@ export async function getUnpaidInvoices(customerId?: string) {
   });
 
   return invoices
-    .map((invoice: any) => {
+    .map((invoice: InvoiceWithCustomerAndPayments) => {
       const actualPaidAmount = invoice.payments.reduce((sum: number, p: { amount: number }) => sum + p.amount, 0);
       const actualStatus = calculateInvoiceStatus(
         invoice.totalAmount,
@@ -162,7 +168,7 @@ export async function getUnpaidInvoices(customerId?: string) {
         isFullyPaid: actualStatus === InvoiceStatus.PAID,
       };
     })
-    .filter((inv: any) => isInvoiceNotPaid(inv.status as InvoiceStatus));
+    .filter((inv) => isInvoiceNotPaid(inv.status as InvoiceStatus));
 }
 
 /**
@@ -209,7 +215,7 @@ export async function recalculateCustomerInvoices(customerId: string) {
     },
   });
 
-  const updates = invoices.map(async (invoice: any) => {
+  const updates = invoices.map(async (invoice: InvoiceWithPayments) => {
     const actualPaidAmount = invoice.payments.reduce((sum: number, p: { amount: number }) => sum + p.amount, 0);
     const newStatus = calculateInvoiceStatus(
       invoice.totalAmount,
@@ -268,7 +274,7 @@ export async function getPaymentSummary(startDate?: Date, endDate?: Date) {
   const totalCollected = payments.reduce((sum: number, p: { amount: number }) => sum + p.amount, 0);
   const paymentsByMethod: Record<string, number> = {};
 
-  payments.forEach((payment: any) => {
+  payments.forEach((payment: { paymentMethod: string; amount: number }) => {
     paymentsByMethod[payment.paymentMethod] =
       (paymentsByMethod[payment.paymentMethod] || 0) + payment.amount;
   });
@@ -298,7 +304,7 @@ export async function getInvoiceAgingReport(customerId?: string) {
   const ninetyDaysOverdue: typeof invoices = [];
   const over90DaysOverdue: typeof invoices = [];
 
-  invoices.forEach((invoice: any) => {
+  invoices.forEach((invoice: InvoiceWithCustomerAndPayments) => {
     const daysOverdue = Math.floor(
       (today.getTime() - invoice.dueDate.getTime()) / (1000 * 60 * 60 * 24)
     );
@@ -319,27 +325,27 @@ export async function getInvoiceAgingReport(customerId?: string) {
   return {
     current: {
       count: current.length,
-      total: current.reduce((sum: number, inv: any) => sum + inv.balanceAmount, 0),
+      total: current.reduce((sum, inv) => sum + inv.balanceAmount, 0),
       invoices: current,
     },
     thirtyDaysOverdue: {
       count: thirtyDaysOverdue.length,
-      total: thirtyDaysOverdue.reduce((sum: number, inv: any) => sum + inv.balanceAmount, 0),
+      total: thirtyDaysOverdue.reduce((sum, inv) => sum + inv.balanceAmount, 0),
       invoices: thirtyDaysOverdue,
     },
     sixtyDaysOverdue: {
       count: sixtyDaysOverdue.length,
-      total: sixtyDaysOverdue.reduce((sum: number, inv: any) => sum + inv.balanceAmount, 0),
+      total: sixtyDaysOverdue.reduce((sum, inv) => sum + inv.balanceAmount, 0),
       invoices: sixtyDaysOverdue,
     },
     ninetyDaysOverdue: {
       count: ninetyDaysOverdue.length,
-      total: ninetyDaysOverdue.reduce((sum: number, inv: any) => sum + inv.balanceAmount, 0),
+      total: ninetyDaysOverdue.reduce((sum, inv) => sum + inv.balanceAmount, 0),
       invoices: ninetyDaysOverdue,
     },
     over90DaysOverdue: {
       count: over90DaysOverdue.length,
-      total: over90DaysOverdue.reduce((sum: number, inv: any) => sum + inv.balanceAmount, 0),
+      total: over90DaysOverdue.reduce((sum, inv) => sum + inv.balanceAmount, 0),
       invoices: over90DaysOverdue,
     },
   };

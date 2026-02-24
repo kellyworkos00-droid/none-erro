@@ -47,8 +47,7 @@ export async function GET(request: NextRequest) {
 
     // Combine and sort all transactions by date
     const allTransactions = [
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...(invoices as any[]).map((inv: any) => ({
+      ...invoices.map((inv) => ({
         type: 'invoice' as const,
         id: inv.id,
         number: inv.invoiceNumber,
@@ -64,8 +63,7 @@ export async function GET(request: NextRequest) {
           balanceAmount: inv.balanceAmount,
         },
       })),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...(payments as any[]).map((pay: any) => ({
+      ...payments.map((pay) => ({
         type: 'payment' as const,
         id: pay.id,
         number: pay.paymentNumber,
@@ -80,8 +78,7 @@ export async function GET(request: NextRequest) {
           paymentMethod: pay.paymentMethod,
         },
       })),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...(supplierBills as any[]).map((bill: any) => ({
+      ...supplierBills.map((bill) => ({
         type: 'supplier_bill' as const,
         id: bill.id,
         number: bill.billNumber,
@@ -97,8 +94,7 @@ export async function GET(request: NextRequest) {
           balanceAmount: bill.balanceAmount,
         },
       })),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...(expenses as any[]).map((exp: any) => ({
+      ...expenses.map((exp) => ({
         type: 'expense' as const,
         id: exp.id,
         number: exp.expenseNumber,

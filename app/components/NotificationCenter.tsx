@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Bell, X, CheckCircle, AlertCircle, InfoIcon, XCircle, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -14,7 +14,7 @@ interface Notification {
   isRead: boolean;
   actionUrl?: string;
   createdAt: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 interface NotificationCenterProps {
@@ -27,13 +27,7 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread' | 'alerts'>('all');
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchNotifications();
-    }
-  }, [isOpen, filter]);
-
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
       const isRead =
@@ -54,7 +48,13 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchNotifications();
+    }
+  }, [fetchNotifications, isOpen]);
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {

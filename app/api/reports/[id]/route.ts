@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import { verifyAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { successResponse, errorResponse } from '@/lib/response';
@@ -92,7 +93,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const { name, description, columns, filters } = body;
 
     // Validation
-    const updateData: any = {};
+    const updateData: Prisma.ReportTemplateUpdateInput = {};
 
     if (name !== undefined) {
       if (typeof name !== 'string' || name.trim().length === 0) {

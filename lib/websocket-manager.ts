@@ -3,15 +3,29 @@ import { NotificationPayload } from '@/lib/notification-service';
 // In-memory storage for connected users and their socket IDs
 // In production, you'd want to use Redis for multi-server deployments
 const connectedUsers = new Map<string, Set<string>>();
-let io: any = null;
+
+type SocketLike = {
+  id: string;
+  join: (room: string) => void;
+  on: (event: string, handler: (...args: unknown[]) => void) => void;
+  emit: (event: string, payload?: unknown) => void;
+};
+
+type SocketServerLike = {
+  on: (event: 'connection', handler: (socket: SocketLike) => void) => void;
+  to: (room: string) => { emit: (event: string, payload: unknown) => void };
+  emit: (event: string, payload: unknown) => void;
+};
+
+let io: SocketServerLike | null = null;
 
 /**
  * Initialize Socket.IO server (called from API route)
  */
-export function initializeSocketIO(ioInstance: any) {
+export function initializeSocketIO(ioInstance: SocketServerLike) {
   io = ioInstance;
 
-  io.on('connection', (socket: any) => {
+  io.on('connection', (socket: SocketLike) => {
     console.log('User connected:', socket.id);
 
     // Handle user joining room (after authentication)
