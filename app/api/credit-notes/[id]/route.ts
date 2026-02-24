@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { updateCreditNoteSchema } from '@/lib/validations';
+import { verifyAuth } from '@/lib/auth';
 
 // GET /api/credit-notes/[id] - Get credit note details
 export async function GET(
@@ -8,7 +9,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await validateRequest(request);
+    const user = await verifyAuth(request);
     if (!user) {
       return NextResponse.json({ error: { message: 'Unauthorized' } }, { status: 401 });
     }
@@ -79,7 +80,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await validateRequest(request);
+    const user = await verifyAuth(request);
     if (!user) {
       return NextResponse.json({ error: { message: 'Unauthorized' } }, { status: 401 });
     }
@@ -296,7 +297,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await validateRequest(request);
+    const user = await verifyAuth(request);
     if (!user) {
       return NextResponse.json({ error: { message: 'Unauthorized' } }, { status: 401 });
     }
