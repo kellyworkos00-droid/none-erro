@@ -53,7 +53,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await requireRoles(request, ['ADMIN', 'FINANCE_MANAGER']);
+    await requireRoles(request, ['ADMIN', 'FINANCE_MANAGER']);
     const body = await request.json();
     const parsed = expenseSchema.safeParse(body);
 
