@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import './globals.css';
 import Header from './components/Header';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { OfflineIndicator } from './components/OfflineIndicator';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -18,6 +19,16 @@ const fraunces = Fraunces({
 export const metadata: Metadata = {
   title: 'Kelly OS - ERP Suite',
   description: 'Production-ready ERP suite for finance and operations',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  themeColor: '#3b82f6',
+  keywords: ['ERP', 'Finance', 'Business', 'Management', 'Analytics'],
 };
 
 export default function RootLayout({
@@ -27,7 +38,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Elegante" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+      </head>
       <body className={`${spaceGrotesk.variable} ${fraunces.variable} font-sans`}>
+        <OfflineIndicator />
         <ErrorBoundary>
           <Header />
           {children}

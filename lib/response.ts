@@ -297,3 +297,29 @@ export function withApiResponse(
 export function generateRequestId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
+
+/**
+ * Simple success response helper for API endpoints
+ */
+export function successResponse<T>(data: T, statusCode: number = 200) {
+  return NextResponse.json(
+    {
+      success: true,
+      data,
+    },
+    { status: statusCode }
+  );
+}
+
+/**
+ * Simple error response helper for API endpoints
+ */
+export function errorResponse(message: string, statusCode: number = 400) {
+  return NextResponse.json(
+    {
+      success: false,
+      error: message,
+    },
+    { status: statusCode }
+  );
+}

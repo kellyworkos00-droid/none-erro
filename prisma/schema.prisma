@@ -54,6 +54,9 @@ model User {
   creditNotesCreated   CreditNote[]   @relation("CreditNoteCreatedBy")
   creditNotesApproved  CreditNote[]   @relation("CreditNoteApprovedBy")
   productReturns       ProductReturn[]
+  notifications        Notification[]
+  notificationPreference NotificationPreference?
+  reportTemplates      ReportTemplate[]
 
   @@map("users")
 }
@@ -1405,6 +1408,192 @@ model Attendance {
   @@index([employeeId])
   @@index([date])
   @@map("attendances")
+}
+
+// ============================================================================
+// NOTIFICATIONS & ALERTS SYSTEM
+// ============================================================================
+
+model Notification {
+  id              String   @id @default(cuid())
+  userId          String
+  type            String   // RECONCILIATION_COMPLETE, PAYMENT_REMINDER, APPROVAL_REQUIRED, EXCEPTION_ALERT, etc.
+  title           String
+  message         String
+  severity        String   @default("INFO") // INFO, WARNING, ERROR, CRITICAL
+  category        String? // reconciliation, payment, approval, matching, etc.
+  
+  // Related entity references
+  relatedEntityId String?
+  relatedEntityType String? // RECONCILIATION, PAYMENT, INVOICE, BANK_TRANSACTION, etc.
+  
+  // Delivery status
+  isRead          Boolean  @default(false)
+  readAt          DateTime?
+  isEmailed       Boolean  @default(false)
+  emailedAt       DateTime?
+  
+  // Metadata
+  metadata        Json?    // Store any additional data (amounts, references, etc.)
+  actionUrl       String?  // URL to navigate to for this notification
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  expiresAt       DateTime? // Optional expiration for temporary notifications
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([type])
+  @@index([severity])
+  @@index([createdAt])
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model AlertRule {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  enabled         Boolean  @default(true)
+  
+  // Trigger configuration
+  eventType       String   // UNMATCHED_TRANSACTION, FAILED_MATCH, HIGH_VALUE_PAYMENT, OVERDUE_INVOICE, etc.
+  triggerCondition Json    // JSON conditions like { "amount": { "gt": 10000 }, "status": "FAILED" }
+  priority        String   @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  
+  // Actions
+  notifyUsers     Boolean  @default(true)
+  notifyEmail     Boolean  @default(false)
+  emailRecipients String? // Comma-separated emails
+  webhookUrl      String?  // Optional webhook for external integrations
+  
+  // Frequency control
+  cooldownMinutes Int    @default(0) // Prevent alert spam
+  maxAlertsPerDay Int    @default(100)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  alertInstances  AlertInstance[]
+
+  @@index([eventType])
+  @@index([enabled])
+  @@map("alert_rules")
+}
+
+model AlertInstance {
+  id              String   @id @default(cuid())
+  alertRuleId     String
+  relatedEntityId String?
+  relatedEntityType String?
+  
+  status          String   @default("ACTIVE") // ACTIVE, ACKNOWLEDGED, RESOLVED
+  severity        String   @default("MEDIUM")
+  title           String
+  message         String
+  metadata        Json?
+  
+  acknowledgedBy  String?
+  acknowledgedAt  DateTime?
+  resolvedAt      DateTime?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  alertRule       AlertRule @relation(fields: [alertRuleId], references: [id], onDelete: Cascade)
+
+  @@index([alertRuleId])
+  @@index([status])
+  @@index([severity])
+  @@index([relatedEntityId])
+  @@map("alert_instances")
+}
+
+model NotificationPreference {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  
+  // Push notification settings
+  enablePush      Boolean  @default(true)
+  enableEmail     Boolean  @default(true)
+  enableInApp     Boolean  @default(true)
+  
+  // Notification type preferences
+  reconciliationAlerts Boolean @default(true)
+  paymentAlerts   Boolean  @default(true)
+  approvalAlerts  Boolean  @default(true)
+  exceptionAlerts Boolean  @default(true)
+  systemAlerts    Boolean  @default(true)
+  
+  // Timing preferences
+  quietHoursStart String? // HH:mm format
+  quietHoursEnd   String?
+  
+  // Digest settings
+  enableDigest    Boolean  @default(false)
+  digestFrequency String? // DAILY, WEEKLY, NEVER
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+model NotificationLog {
+  id              String   @id @default(cuid())
+  notificationId  String?
+  userId          String?
+  type            String   // EMAIL_SENT, PUSH_SENT, IN_APP_CREATED, WEBHOOK_TRIGGERED
+  
+  status          String   // SUCCESS, FAILED, PENDING
+  message         String?
+  errorDetails    String?
+  
+  channel         String? // EMAIL, PUSH, WEBHOOK
+  recipientEmail  String?
+  
+  metadata        Json?
+  
+  createdAt       DateTime @default(now())
+
+  @@index([notificationId])
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@map("notification_logs")
+}
+
+// ============================================================================
+// ADVANCED REPORTING & CUSTOM REPORTS
+// ============================================================================
+
+model ReportTemplate {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  reportType      String   // aging, cashflow, dashboard
+  
+  // JSON arrays of column names to display
+  columns         Json     @default("[]")
+  
+  // JSON object for custom filters (date range, customer, amount range, etc)
+  filters         Json     @default("{}")
+  
+  createdById     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  createdBy       User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  
+  @@index([createdById])
+  @@index([reportType])
+  @@index([createdAt])
+  @@map("report_templates")
 }
 
 // ============================================================================
