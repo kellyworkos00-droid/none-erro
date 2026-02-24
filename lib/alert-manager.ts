@@ -55,7 +55,7 @@ export async function triggerAlerts(params: AlertTriggerParams): Promise<void> {
             severity: rule.priority,
             title: rule.name,
             message: rule.description || '',
-            metadata: params.values,
+            metadata: params.values as any,
           },
         });
 

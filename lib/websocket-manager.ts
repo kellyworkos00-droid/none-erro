@@ -29,15 +29,16 @@ export function initializeSocketIO(ioInstance: SocketServerLike) {
     console.log('User connected:', socket.id);
 
     // Handle user joining room (after authentication)
-    socket.on('user:join', (userId: string) => {
-      socket.join(`user:${userId}`);
+    socket.on('user:join', (userId: unknown) => {
+      const userIdStr = userId as string;
+      socket.join(`user:${userIdStr}`);
       
-      if (!connectedUsers.has(userId)) {
-        connectedUsers.set(userId, new Set());
+      if (!connectedUsers.has(userIdStr)) {
+        connectedUsers.set(userIdStr, new Set());
       }
-      connectedUsers.get(userId)!.add(socket.id);
+      connectedUsers.get(userIdStr)!.add(socket.id);
 
-      console.log(`User ${userId} joined (socket: ${socket.id})`);
+      console.log(`User ${userIdStr} joined (socket: ${socket.id})`);
     });
 
     // Handle user leaving
@@ -87,7 +88,7 @@ export async function broadcastBulkNotifications(
   }
 
   userIds.forEach((userId) => {
-    io.to(`user:${userId}`).emit('notification:new', {
+    io!.to(`user:${userId}`).emit('notification:new', {
       ...notification,
       userId,
     });

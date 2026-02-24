@@ -99,7 +99,7 @@ export async function createNotification(
           category: params.category,
           relatedEntityId: params.relatedEntityId,
           relatedEntityType: params.relatedEntityType,
-          metadata: params.metadata,
+          metadata: params.metadata as any,
           actionUrl: params.actionUrl,
         },
       });
