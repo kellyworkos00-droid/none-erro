@@ -70,19 +70,8 @@ export async function POST(
         category: parsed.data.category,
         description: parsed.data.description,
         amount: parsed.data.amount,
-        expenseDate: parsed.data.expenseDate ? new Date(parsed.data.expenseDate) : new Date(),
-        receiptUrl: parsed.data.receiptUrl,
+        date: parsed.data.expenseDate ? new Date(parsed.data.expenseDate) : new Date(),
         notes: parsed.data.notes,
-        createdBy: user.userId,
-      },
-      include: {
-        createdByUser: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
       },
     });
 
