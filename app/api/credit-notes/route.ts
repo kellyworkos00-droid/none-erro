@@ -202,11 +202,11 @@ export async function POST(request: NextRequest) {
 
     // Audit log
     await createAuditLog({
-      userId: user.id,
-      action: 'CREATE',
-      entity: 'CREDIT_NOTE',
+      userId: user.userId,
+      action: 'UPDATE_CREDIT_NOTE',
+      entityType: 'CreditNote',
       entityId: creditNote!.id,
-      details: `Created credit note ${creditNote!.creditNoteNumber} for ${totalAmount.toFixed(2)}`,
+      description: `Created credit note ${creditNote!.creditNoteNumber} for ${totalAmount.toFixed(2)}`,
     });
 
     return NextResponse.json({
