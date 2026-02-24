@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
           remainingAmount: totalAmount,
           issueDate: new Date(),
           status: 'DRAFT',
-          createdBy: user.id,
+          createdBy: user.userId,
         },
       });
 
