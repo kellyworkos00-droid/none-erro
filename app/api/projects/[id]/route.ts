@@ -60,14 +60,6 @@ export async function GET(
         },
         expenses: {
           orderBy: { date: 'desc' },
-          include: {
-            createdByUser: {
-              select: {
-                firstName: true,
-                lastName: true,
-              },
-            },
-          },
         },
       },
     });
