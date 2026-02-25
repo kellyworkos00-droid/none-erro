@@ -66,18 +66,30 @@ export async function PATCH(
       },
     });
 
-    // If invoice exists, update its status as well
+    // If invoice exists, update its status and amounts as well
     if (order.invoiceId) {
       let invoiceStatus = 'SENT';
+      let paidAmount = 0;
+      let balanceAmount = order.invoice?.totalAmount || 0;
+
       if (paymentStatus === 'PAID') {
         invoiceStatus = 'PAID';
+        paidAmount = order.invoice?.totalAmount || 0;
+        balanceAmount = 0;
       } else if (paymentStatus === 'PARTIALLY_PAID') {
         invoiceStatus = 'PARTIALLY_PAID';
+        // For partially paid, use amountPaid from the order
+        paidAmount = order.amountPaid || 0;
+        balanceAmount = Math.max((order.invoice?.totalAmount || 0) - paidAmount, 0);
       }
 
       await prisma.invoice.update({
         where: { id: order.invoiceId },
-        data: { status: invoiceStatus },
+        data: {
+          status: invoiceStatus,
+          paidAmount,
+          balanceAmount,
+        },
       });
     }
 
