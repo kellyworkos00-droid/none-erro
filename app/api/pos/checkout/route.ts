@@ -11,16 +11,18 @@ const WALKIN_CUSTOMER_CODE = 'CUST-WALKIN';
 const INVOICE_PREFIX = 'INV-';
 
 const getNextInvoiceNumber = async (tx: TransactionClient) => {
+  // Find the latest invoice by ordering, only select what we need
   const latest = await tx.invoice.findFirst({
     orderBy: { createdAt: 'desc' },
     select: { invoiceNumber: true },
+    take: 1,
   });
 
   const lastDigits = latest?.invoiceNumber?.match(/(\d+)$/)?.[1];
   const lastValue = lastDigits ? parseInt(lastDigits, 10) : 0;
-  const count = await tx.invoice.count();
-  const nextValue = Math.max(lastValue, count) + 1;
 
+  // Just increment from the last value found
+  const nextValue = lastValue + 1;
   return `${INVOICE_PREFIX}${nextValue.toString().padStart(6, '0')}`;
 };
 
@@ -101,32 +103,33 @@ export async function POST(request: NextRequest) {
       paymentStatus = 'PARTIALLY_PAID';
     }
 
-    const result = await prisma.$transaction(async (tx: TransactionClient) => {
-      const finalCustomerId = order.customerId
-        ? order.customerId
-        : (await getOrCreateWalkInCustomer(tx)).id;
+    const result = await prisma.$transaction(
+      async (tx: TransactionClient) => {
+        const finalCustomerId = order.customerId
+          ? order.customerId
+          : (await getOrCreateWalkInCustomer(tx)).id;
 
-      const customer = await tx.customer.findUnique({
-        where: { id: finalCustomerId },
-      });
-
-      if (!customer) {
-        throw new Error('Customer not found');
-      }
-
-      // Update product quantities
-      for (const item of order.orderItems) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            quantity: {
-              decrement: item.quantity,
-            },
-          },
+        const customer = await tx.customer.findUnique({
+          where: { id: finalCustomerId },
         });
-      }
 
-      const invoiceNumber = await getNextInvoiceNumber(tx);
+        if (!customer) {
+          throw new Error('Customer not found');
+        }
+
+        // Update product quantities using bulk operations
+        for (const item of order.orderItems) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: {
+              quantity: {
+                decrement: item.quantity,
+              },
+            },
+          });
+        }
+
+        const invoiceNumber = await getNextInvoiceNumber(tx);
       const issueDate = new Date();
 
       // Calculate initial status based on payment
@@ -194,17 +197,27 @@ export async function POST(request: NextRequest) {
           customerId: finalCustomerId,
           invoiceId: invoice.id,
         },
-        include: {
-          customer: true,
-          invoice: true,
-          orderItems: {
-            include: { product: true },
-          },
-          createdByUser: true,
-        },
       });
 
-      return { completedOrder, invoice, payment };
+      return { completedOrder, invoice, payment, orderId };
+      },
+      {
+        maxWait: 15000, // 15 seconds max wait time
+        timeout: 15000, // 15 seconds transaction timeout
+      }
+    );
+
+    // Fetch complete order with all relations (after transaction completes)
+    const completeOrder = await prisma.posOrder.findUnique({
+      where: { id: result.orderId },
+      include: {
+        customer: true,
+        invoice: true,
+        orderItems: {
+          include: { product: true },
+        },
+        createdByUser: true,
+      },
     });
 
     try {
@@ -233,7 +246,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      createSuccessResponse(result.completedOrder, 'Order completed successfully')
+      createSuccessResponse(completeOrder || result.completedOrder, 'Order completed successfully')
     );
   } catch (error) {
     console.error('Failed to checkout order:', error);
