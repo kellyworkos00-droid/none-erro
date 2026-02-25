@@ -132,7 +132,8 @@ export async function POST(request: NextRequest) {
         const invoiceNumber = await getNextInvoiceNumber(tx);
       const issueDate = new Date();
 
-      // All invoices start as SENT (unpaid) - status only changes when payments are recorded
+      // All invoices start as SENT (unpaid) with zero paid amount
+      // Payments are recorded separately through the payment system
       const invoice = await tx.invoice.create({
         data: {
           invoiceNumber,
@@ -140,8 +141,8 @@ export async function POST(request: NextRequest) {
           subtotal: order.subtotal,
           taxAmount: order.tax,
           totalAmount: order.totalAmount,
-          paidAmount: paymentAmount,
-          balanceAmount: Math.max(order.totalAmount - paymentAmount, 0),
+          paidAmount: 0,  // Always start unpaid, updated when payment is recorded
+          balanceAmount: order.totalAmount,  // Full amount due, updated when payment is recorded
           status: 'SENT',
           issueDate,
           dueDate: issueDate,
@@ -149,6 +150,8 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      // Create payment record if amount paid at checkout
+      // Note: This payment gets recorded separately and will update invoice balances
       const payment = paymentAmount > 0
         ? await tx.payment.create({
           data: {
