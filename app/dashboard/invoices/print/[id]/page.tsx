@@ -143,6 +143,13 @@ export default function InvoicePrintPage() {
     }))
   );
 
+  // Pagination for multiple pages
+  const maxItemsPerPage = 20;
+  const totalPages = Math.ceil(lineItems.length / maxItemsPerPage);
+  const pages = Array.from({ length: totalPages }, (_, i) => 
+    lineItems.slice(i * maxItemsPerPage, (i + 1) * maxItemsPerPage)
+  );
+
   return (
     <div style={{ margin: 0, padding: 0, width: '100%', backgroundColor: '#ffffff' }}>
       <style>{`
@@ -214,7 +221,13 @@ export default function InvoicePrintPage() {
           <p>Invoice not found</p>
         </div>
       ) : (
-        <div className="invoice-page">
+        <>
+          {pages.map((pageItems, pageIdx) => (
+            <div 
+              key={pageIdx}
+              className="invoice-page"
+              style={{ pageBreakAfter: pageIdx < pages.length - 1 ? 'always' : 'auto' }}
+            >
           {/* Professional Header */}
           <div style={{ borderBottom: '4px solid #2563eb', paddingBottom: '16px', marginBottom: '16px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', alignItems: 'flex-start', marginBottom: '12px' }}>
@@ -291,7 +304,7 @@ export default function InvoicePrintPage() {
           </div>
 
           {/* Line Items Table */}
-          {lineItems.length > 0 && (
+          {pageItems.length > 0 && (
             <div style={{ marginBottom: '16px' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
                 <thead>
@@ -303,7 +316,7 @@ export default function InvoicePrintPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {lineItems.map((item, index) => (
+                  {pageItems.map((item, index) => (
                     <tr key={index} style={{ borderBottom: '1px solid #e5e7eb' }}>
                       <td style={{ padding: '8px 12px', color: '#111827' }}>{item.description}</td>
                       <td style={{ padding: '8px 8px', textAlign: 'center', color: '#111827', fontWeight: '500' }}>{item.quantity}</td>
@@ -316,42 +329,44 @@ export default function InvoicePrintPage() {
             </div>
           )}
 
-          {/* Totals Section */}
-          <div style={{ borderTop: '2px solid #d1d5db', paddingTop: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <div style={{ width: '300px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', paddingBottom: '6px' }}>
-                  <span style={{ color: '#374151', fontWeight: '600' }}>Subtotal:</span>
-                  <span style={{ fontWeight: '600', color: '#111827' }}>{formatCurrency(invoice.subtotal)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', paddingBottom: '6px', borderBottom: '2px solid #d1d5db' }}>
-                  <span style={{ color: '#374151', fontWeight: '600' }}>VAT @ 16%:</span>
-                  <span style={{ fontWeight: '600', color: '#b45309' }}>{formatCurrency(invoice.taxAmount)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#eff6ff', padding: '8px 12px', borderRadius: '4px', margin: '8px 0' }}>
-                  <span style={{ color: '#111827' }}>TOTAL DUE:</span>
-                  <span style={{ color: '#1e3a8a' }}>{formatCurrency(invoice.totalAmount)}</span>
-                </div>
-                {invoice.paidAmount > 0 && (
-                  <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', paddingTop: '6px', color: '#15803d', fontWeight: '600' }}>
-                      <span>Amount Paid:</span>
-                      <span>{formatCurrency(invoice.paidAmount)}</span>
-                    </div>
-                    {invoice.balanceAmount > 0 && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', paddingTop: '6px', backgroundColor: '#fffbeb', padding: '8px 12px', borderRadius: '4px', color: '#92400e', fontWeight: 'bold' }}>
-                        <span>Balance Due:</span>
-                        <span>{formatCurrency(invoice.balanceAmount)}</span>
+          {/* Totals Section - Only on first page */}
+          {pageIdx === 0 && (
+            <div style={{ borderTop: '2px solid #d1d5db', paddingTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <div style={{ width: '300px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', paddingBottom: '6px' }}>
+                    <span style={{ color: '#374151', fontWeight: '600' }}>Subtotal:</span>
+                    <span style={{ fontWeight: '600', color: '#111827' }}>{formatCurrency(invoice.subtotal)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', paddingBottom: '6px', borderBottom: '2px solid #d1d5db' }}>
+                    <span style={{ color: '#374151', fontWeight: '600' }}>VAT @ 16%:</span>
+                    <span style={{ fontWeight: '600', color: '#b45309' }}>{formatCurrency(invoice.taxAmount)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#eff6ff', padding: '8px 12px', borderRadius: '4px', margin: '8px 0' }}>
+                    <span style={{ color: '#111827' }}>TOTAL DUE:</span>
+                    <span style={{ color: '#1e3a8a' }}>{formatCurrency(invoice.totalAmount)}</span>
+                  </div>
+                  {invoice.paidAmount > 0 && (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', paddingTop: '6px', color: '#15803d', fontWeight: '600' }}>
+                        <span>Amount Paid:</span>
+                        <span>{formatCurrency(invoice.paidAmount)}</span>
                       </div>
-                    )}
-                  </>
-                )}
+                      {invoice.balanceAmount > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', paddingTop: '6px', backgroundColor: '#fffbeb', padding: '8px 12px', borderRadius: '4px', color: '#92400e', fontWeight: 'bold' }}>
+                          <span>Balance Due:</span>
+                          <span>{formatCurrency(invoice.balanceAmount)}</span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Payment History */}
-          {invoice.payments.length > 0 && (
+          {/* Payment History - Only on first page */}
+          {pageIdx === 0 && invoice.payments.length > 0 && (
             <div style={{ marginTop: '16px', fontSize: '12px' }}>
               <p style={{ fontWeight: 'bold', color: '#111827', textTransform: 'uppercase', marginBottom: '8px', paddingBottom: '4px', borderBottom: '2px solid #d1d5db', margin: 0 }}>Payment History</p>
               <div style={{ marginTop: '8px' }}>
@@ -371,8 +386,13 @@ export default function InvoicePrintPage() {
             <p style={{ color: '#6b7280', lineHeight: 1.5, margin: '4px 0' }}>VAT is included in all prices above. This is a computer-generated document and requires no signature for validity.</p>
             <p style={{ color: '#6b7280', marginTop: '8px', fontWeight: '600', margin: '8px 0 0 0' }}>Elegant Steel | Eastern Bypass | KRA PIN: P000000000A</p>
             <p style={{ color: '#9ca3af', marginTop: '4px', fontSize: '11px', margin: '4px 0 0 0' }}>Printed on {formatDate(new Date().toISOString())}</p>
+            {totalPages > 1 && (
+              <p style={{ color: '#9ca3af', marginTop: '8px', fontSize: '11px', margin: '8px 0 0 0', fontWeight: '600' }}>Page {pageIdx + 1} of {totalPages}</p>
+            )}
           </div>
-        </div>
+            </div>
+          ))}
+        </>
       )}
     </div>
   );
