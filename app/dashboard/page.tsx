@@ -34,6 +34,28 @@ interface TopCustomer {
   paymentsCount: number;
 }
 
+interface DueInvoice {
+  id: string;
+  invoiceNumber: string;
+  customer: { id: string; name: string; email: string; phone: string };
+  totalAmount: number;
+  balanceAmount: number;
+  paidAmount: number;
+  dueDate: string;
+  daysUntilDue: number;
+  isOverdue: boolean;
+  status: string;
+  priority: 'urgent' | 'high' | 'medium' | 'normal';
+}
+
+interface DueInvoicesSummary {
+  total: number;
+  overdue: number;
+  dueSoon: number;
+  totalAmount: number;
+  overdueAmount: number;
+}
+
 interface IntegrationSummary {
   financialHealth: {
     monthlyRevenue: number;
@@ -173,6 +195,8 @@ export default function DashboardPage() {
   const router = useRouter();
   const [data, setData] = useState<DashboardData>(emptyDashboardData);
   const [integrationSummary, setIntegrationSummary] = useState<IntegrationSummary | null>(null);
+  const [dueInvoices, setDueInvoices] = useState<DueInvoice[]>([]);
+  const [dueInvoicesSummary, setDueInvoicesSummary] = useState<DueInvoicesSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Check authentication
@@ -188,6 +212,7 @@ export default function DashboardPage() {
     if (token) {
       fetchDashboardData();
       fetchIntegrationSummary();
+      fetchDueInvoices();
     }
   }, []);
 
@@ -220,6 +245,45 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Error fetching integration summary:', error);
       setIntegrationSummary(emptyIntegrationSummary);
+    }
+  };
+
+  const fetchDueInvoices = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setDueInvoices([]);
+        setDueInvoicesSummary(null);
+        return;
+      }
+
+      const response = await fetch('/api/invoices/due-soon', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const result = await response.json();
+          if (result.data && result.data.invoices) {
+            setDueInvoices(result.data.invoices);
+            setDueInvoicesSummary(result.data.summary);
+          }
+        } else {
+          console.error('Expected JSON but got:', contentType);
+          setDueInvoices([]);
+          setDueInvoicesSummary(null);
+        }
+      } else {
+        setDueInvoices([]);
+        setDueInvoicesSummary(null);
+      }
+    } catch (error) {
+      console.error('Error fetching due invoices:', error);
+      setDueInvoices([]);
+      setDueInvoicesSummary(null);
     }
   };
 
@@ -388,6 +452,145 @@ export default function DashboardPage() {
               <div className="text-xs text-primary-100 mt-1">Available</div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Invoices Due Within 1 Week */}
+      {dueInvoicesSummary && dueInvoicesSummary.total > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">📋 Invoices Due Soon</h2>
+              <p className="text-gray-600 text-sm mt-1">
+                {dueInvoicesSummary.overdue > 0 
+                  ? `${dueInvoicesSummary.overdue} overdue, ${dueInvoicesSummary.dueSoon} due within 3 days`
+                  : `${dueInvoicesSummary.dueSoon} due within 3 days`
+                }
+              </p>
+            </div>
+            <Link 
+              href="/dashboard/invoices/unpaid"
+              className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
+            >
+              View All
+              <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+
+          {/* Quick stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+              <div className="text-xs text-red-600 font-medium">Overdue</div>
+              <div className="text-2xl font-bold text-red-700">{dueInvoicesSummary.overdue}</div>
+              <div className="text-xs text-red-600 mt-1">
+                {formatCurrency(dueInvoicesSummary.overdueAmount)}
+              </div>
+            </div>
+            <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
+              <div className="text-xs text-orange-600 font-medium">This Week</div>
+              <div className="text-2xl font-bold text-orange-700">{dueInvoicesSummary.dueSoon}</div>
+              <div className="text-xs text-orange-600 mt-1">High priority</div>
+            </div>
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+              <div className="text-xs text-blue-600 font-medium">Total Due</div>
+              <div className="text-2xl font-bold text-blue-700">{dueInvoicesSummary.total}</div>
+              <div className="text-xs text-blue-600 mt-1">In next 7 days</div>
+            </div>
+            <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+              <div className="text-xs text-purple-600 font-medium">Outstanding</div>
+              <div className="text-2xl font-bold text-purple-700">
+                {(dueInvoicesSummary.totalAmount / 1000000).toFixed(1)}M
+              </div>
+              <div className="text-xs text-purple-600 mt-1">Total amount</div>
+            </div>
+          </div>
+
+          {/* Invoice list */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600">Invoice</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600">Customer</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-600">Amount</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-600">Due Date</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-600">Status</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-600">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {dueInvoices.slice(0, 8).map((invoice) => (
+                    <tr key={invoice.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-3">
+                        <Link 
+                          href={`/dashboard/invoices/${invoice.id}`}
+                          className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                        >
+                          {invoice.invoiceNumber}
+                        </Link>
+                      </td>
+                      <td className="px-6 py-3">
+                        <div className="text-sm text-gray-900">{invoice.customer.name}</div>
+                        <div className="text-xs text-gray-500">{invoice.customer.phone}</div>
+                      </td>
+                      <td className="px-6 py-3 text-right">
+                        <div className="text-sm font-semibold text-gray-900">
+                          {formatCurrency(invoice.balanceAmount)}
+                        </div>
+                        <div className="text-xs text-gray-500">of {formatCurrency(invoice.totalAmount)}</div>
+                      </td>
+                      <td className="px-6 py-3 text-right">
+                        <div className="text-sm font-medium text-gray-900">
+                          {formatDate(invoice.dueDate)}
+                        </div>
+                        <div className={`text-xs font-semibold ${
+                          invoice.isOverdue ? 'text-red-600' : 
+                          invoice.daysUntilDue <= 1 ? 'text-red-600' :
+                          invoice.daysUntilDue <= 3 ? 'text-orange-600' : 'text-gray-500'
+                        }`}>
+                          {invoice.isOverdue 
+                            ? `${Math.abs(invoice.daysUntilDue)} days overdue`
+                            : `${invoice.daysUntilDue} day${invoice.daysUntilDue !== 1 ? 's' : ''} left`
+                          }
+                        </div>
+                      </td>
+                      <td className="px-6 py-3 text-center">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          invoice.priority === 'urgent' ? 'bg-red-100 text-red-800' :
+                          invoice.priority === 'high' ? 'bg-orange-100 text-orange-800' :
+                          invoice.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-green-100 text-green-800'
+                        }`}>
+                          {invoice.priority.charAt(0).toUpperCase() + invoice.priority.slice(1)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3 text-right">
+                        <Link
+                          href={`/dashboard/invoices/${invoice.id}`}
+                          className="text-primary-600 hover:text-primary-700 font-medium text-sm"
+                        >
+                          Collect
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {dueInvoices.length > 8 && (
+            <div className="text-center">
+              <Link
+                href="/dashboard/invoices/unpaid"
+                className="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium text-sm"
+              >
+                View {dueInvoices.length - 8} more invoices
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+          )}
         </div>
       )}
 
