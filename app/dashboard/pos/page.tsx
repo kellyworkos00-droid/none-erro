@@ -56,9 +56,11 @@ interface PosOrderSummary {
   id: string;
   orderNumber: string;
   totalAmount: number;
+  amountPaid?: number | null;
   tax?: number | null;
   discount?: number | null;
   paymentMethod?: string | null;
+  paymentStatus?: string | null;
   createdAt: string;
   orderItems?: PosOrderItem[];
   customer?: { name?: string | null } | null;
@@ -82,6 +84,7 @@ export default function POSPage() {
   const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [creatingCustomer, setCreatingCustomer] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [updatingPaymentStatus, setUpdatingPaymentStatus] = useState(false);
   const [userRole, setUserRole] = useState<'ADMIN' | 'FINANCE_MANAGER' | 'FINANCE_STAFF' | 'VIEWER'>('VIEWER');
   const [customerForm, setCustomerForm] = useState({
     customerCode: '',
@@ -434,10 +437,15 @@ export default function POSPage() {
 
       if (!checkoutResponse.ok) {
         const message = await extractErrorMessage(checkoutResponse);
-        throw new Error(message || 'Failed to checkout');
+        const errorMsg = message || 'Failed to checkout order';
+        console.error('Checkout error:', errorMsg);
+        throw new Error(errorMsg);
       }
 
       const completedOrder = await checkoutResponse.json();
+      if (!completedOrder.data) {
+        throw new Error('Invalid checkout response - no order data returned');
+      }
       setLastOrder(completedOrder.data);
       setShowReceipt(true);
 
@@ -454,9 +462,46 @@ export default function POSPage() {
       toast.success('Sale completed! 🎉');
     } catch (error) {
       console.error('Error during checkout:', error);
-      toast.error(error instanceof Error ? error.message : 'Checkout failed');
+      const message = error instanceof Error ? error.message : 'Checkout failed';
+      toast.error(message);
     } finally {
       setIsCheckingOut(false);
+    }
+  };
+
+  const handleTogglePaymentStatus = async () => {
+    if (!lastOrder) return;
+    
+    try {
+      setUpdatingPaymentStatus(true);
+      const token = localStorage.getItem('token');
+      const currentStatus = lastOrder.paymentStatus || 'PENDING';
+      const newStatus = currentStatus === 'PAID' ? 'PENDING' : 'PAID';
+
+      const response = await fetch(`/api/pos/orders/${lastOrder.id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          paymentStatus: newStatus,
+        }),
+      });
+
+      if (!response.ok) {
+        const message = await extractErrorMessage(response);
+        throw new Error(message || 'Failed to update payment status');
+      }
+
+      const result = await response.json();
+      setLastOrder(result.data);
+      toast.success(`Order marked as ${newStatus}`);
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to update status');
+    } finally {
+      setUpdatingPaymentStatus(false);
     }
   };
 
@@ -537,24 +582,42 @@ export default function POSPage() {
               <p><strong>Customer:</strong> {lastOrder.customer.name}</p>
             )}
             <p><strong>Payment:</strong> {lastOrder.paymentMethod}</p>
+            <p><strong>Status:</strong> <span className={`px-2 py-1 rounded text-xs font-semibold ${
+              lastOrder.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800' :
+              lastOrder.paymentStatus === 'PARTIALLY_PAID' ? 'bg-yellow-100 text-yellow-800' :
+              'bg-red-100 text-red-800'
+            }`}>{lastOrder.paymentStatus || 'PENDING'}</span></p>
             <p><strong>Time:</strong> {new Date(lastOrder.createdAt).toLocaleTimeString()}</p>
           </div>
 
-          <div className="pos-receipt-actions flex gap-3">
+          <div className="pos-receipt-actions flex flex-col gap-2">
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowReceipt(false);
+                  setLastOrder(null);
+                }}
+                className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-400"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700"
+              >
+                Print
+              </button>
+            </div>
             <button
-              onClick={() => {
-                setShowReceipt(false);
-                setLastOrder(null);
-              }}
-              className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-400"
+              onClick={handleTogglePaymentStatus}
+              disabled={updatingPaymentStatus}
+              className={`w-full py-2 rounded-lg font-medium text-white ${
+                lastOrder?.paymentStatus === 'PAID' 
+                  ? 'bg-red-600 hover:bg-red-700' 
+                  : 'bg-green-600 hover:bg-green-700'
+              } disabled:bg-gray-400`}
             >
-              Close
-            </button>
-            <button
-              onClick={() => window.print()}
-              className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700"
-            >
-              Print
+              {updatingPaymentStatus ? 'Updating...' : `Mark as ${lastOrder?.paymentStatus === 'PAID' ? 'Not Paid' : 'Paid'}`}
             </button>
           </div>
           </div>

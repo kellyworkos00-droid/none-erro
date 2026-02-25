@@ -243,8 +243,9 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Failed to create order:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create order';
     return NextResponse.json(
-      createErrorResponse('Failed to create order', 'INTERNAL_ERROR'),
+      createErrorResponse(errorMessage, 'INTERNAL_ERROR'),
       { status: 500 }
     );
   }

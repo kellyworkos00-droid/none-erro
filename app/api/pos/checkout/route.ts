@@ -237,8 +237,9 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Failed to checkout order:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to checkout order';
     return NextResponse.json(
-      createErrorResponse('Failed to checkout order', 'INTERNAL_ERROR'),
+      createErrorResponse(errorMessage, 'INTERNAL_ERROR'),
       { status: 500 }
     );
   }
