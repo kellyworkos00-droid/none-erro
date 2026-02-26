@@ -80,7 +80,7 @@ export function useApiCall<T = unknown>() {
               await new Promise((resolve) => setTimeout(resolve, retryDelay * (attempt + 1)));
               continue;
             }
-            throw new Error(lastError);
+            throw new Error(lastError ?? undefined);
           }
 
           const data = await res.json();
