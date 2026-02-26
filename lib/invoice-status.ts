@@ -304,7 +304,7 @@ export async function getInvoiceAgingReport(customerId?: string) {
   const ninetyDaysOverdue: typeof invoices = [];
   const over90DaysOverdue: typeof invoices = [];
 
-  invoices.forEach((invoice: InvoiceWithCustomerAndPayments) => {
+  invoices.forEach((invoice) => {
     const daysOverdue = Math.floor(
       (today.getTime() - invoice.dueDate.getTime()) / (1000 * 60 * 60 * 24)
     );
