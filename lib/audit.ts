@@ -1,7 +1,7 @@
 import prisma from './prisma';
 
 // AuditAction enum values for type safety
-type AuditAction =
+export type AuditAction =
   | 'LOGIN'
   | 'LOGOUT'
   | 'UPLOAD_STATEMENT'

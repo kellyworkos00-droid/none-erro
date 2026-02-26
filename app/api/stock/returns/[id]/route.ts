@@ -6,6 +6,7 @@ import { createAuditLog, getClientIp, getUserAgent } from '@/lib/audit';
 import { createErrorResponse, createSuccessResponse } from '@/lib/utils';
 import type { TransactionClient } from '@/lib/types';
 import type { Prisma } from '@prisma/client';
+import type { AuditAction } from '@/lib/audit';
 
 interface RouteParams {
   params: { id: string };
@@ -159,9 +160,16 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    const auditActionMap: Record<string, AuditAction> = {
+      'APPROVE': 'PRODUCT_RETURN_APPROVE',
+      'PROCESS': 'PRODUCT_RETURN_PROCESS',
+      'COMPLETE': 'PRODUCT_RETURN_COMPLETE',
+      'REJECT': 'PRODUCT_RETURN_REJECT',
+    };
+
     await createAuditLog({
       userId: user.userId,
-      action: `PRODUCT_RETURN_${action}`,
+      action: auditActionMap[action],
       entityType: 'ProductReturn',
       entityId: result.id,
       description: `Product return ${action.toLowerCase()}: ${result.returnNumber}`,
