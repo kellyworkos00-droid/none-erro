@@ -136,7 +136,7 @@ export async function log(
           userId: options.userId || 'system',
           action: `${category}_${level}`,
           entityType: category.toString(),
-          entityId: options.metadata?.entityId || 'unknown',
+          entityId: String(options.metadata?.entityId || 'unknown'),
           metadata: JSON.stringify(entry),
           createdAt: new Date(),
         },
