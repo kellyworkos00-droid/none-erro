@@ -117,7 +117,7 @@ export function applyCorsHeaders(
 ): NextResponse {
   const allowedOrigins = config.allowedOrigins || DEFAULT_CORS_CONFIG.allowedOrigins!;
 
-  if (isOriginAllowed(origin, allowedOrigins)) {
+  if (isOriginAllowed(origin, allowedOrigins) && origin) {
     response.headers.set('Access-Control-Allow-Origin', origin);
     response.headers.set('Access-Control-Allow-Methods', (config.allowedMethods || DEFAULT_CORS_CONFIG.allowedMethods!).join(', '));
     response.headers.set('Access-Control-Allow-Headers', (config.allowedHeaders || DEFAULT_CORS_CONFIG.allowedHeaders!).join(', '));
