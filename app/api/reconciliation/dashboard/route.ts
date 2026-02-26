@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
       return {
         customer,
         totalPaid: Number(tc._sum?.amount ?? 0),
-        paymentsCount: tc._count._all,
+        paymentsCount: tc._count?._all ?? 0,
       };
     });
 
