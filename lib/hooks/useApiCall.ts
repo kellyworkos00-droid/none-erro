@@ -72,7 +72,7 @@ export function useApiCall<T = unknown>() {
 
             // Don't retry on 4xx errors (except 429 - rate limit)
             if (res.status >= 400 && res.status < 500 && res.status !== 429) {
-              throw new Error(lastError);
+              throw new Error(lastError ?? undefined);
             }
 
             // Retry on 5xx or 429
