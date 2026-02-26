@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
       const customer = customerDetails.find((c) => c.id === tc.customerId);
       return {
         customer,
-        totalPaid: Number(tc._sum.amount || 0),
+        totalPaid: Number(tc._sum?.amount ?? 0),
         paymentsCount: tc._count._all,
       };
     });
