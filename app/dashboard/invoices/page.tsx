@@ -23,6 +23,7 @@ export default function InvoicesPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [customerIdFilter, setCustomerIdFilter] = useState(initialCustomerId);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [paymentForm, setPaymentForm] = useState({
     amount: '',
@@ -144,6 +145,35 @@ export default function InvoicesPage() {
     }
   };
 
+  const openDetailsModal = (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    setShowDetailsModal(true);
+  };
+
+  const downloadInvoice = async (invoice: Invoice) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/invoices/${invoice.id}/download`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) throw new Error('Download failed');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${invoice.invoiceNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to download invoice');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Filters */}
@@ -229,7 +259,46 @@ export default function InvoicesPage() {
                       </span>
                     </td>
                     <td>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => openDetailsModal(invoice)}
+                          className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+                          title="View Details"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4 inline mr-1"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                            <path
+                              fillRule="evenodd"
+                              d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          View
+                        </button>
+                        <button
+                          onClick={() => downloadInvoice(invoice)}
+                          className="text-purple-600 hover:text-purple-700 font-medium text-sm"
+                          title="Download PDF"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4 inline mr-1"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          Download
+                        </button>
                         <button
                           onClick={() => openPaymentModal(invoice)}
                           className="text-green-600 hover:text-green-700 font-medium text-sm"
@@ -484,6 +553,122 @@ export default function InvoicesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Invoice Details Modal */}
+      {showDetailsModal && selectedInvoice && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-96 overflow-y-auto">
+            <div className="sticky top-0 px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
+              <div className="flex items-center gap-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6 text-blue-600"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <h3 className="text-lg font-semibold text-gray-900">Invoice Details</h3>
+              </div>
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-600 font-medium">Invoice Number</p>
+                  <p className="text-lg font-semibold text-gray-900">{selectedInvoice.invoiceNumber}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-600 font-medium">Status</p>
+                  <span className={`inline-block badge ${getStatusBadge(selectedInvoice.status)}`}>
+                    {selectedInvoice.status}
+                  </span>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-200 pt-4">
+                <h4 className="font-semibold text-gray-900 mb-3">Customer</h4>
+                <p className="text-sm text-gray-700">{selectedInvoice.customer?.name}</p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4 bg-gray-50 rounded-lg p-4">
+                <div>
+                  <p className="text-xs text-gray-600 font-medium mb-1">Issue Date</p>
+                  <p className="text-sm font-semibold text-gray-900">{formatDate(selectedInvoice.issueDate)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-600 font-medium mb-1">Due Date</p>
+                  <p className="text-sm font-semibold text-gray-900">{formatDate(selectedInvoice.dueDate)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-600 font-medium mb-1">Days</p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {Math.floor((new Date(selectedInvoice.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days
+                  </p>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-200 pt-4">
+                <h4 className="font-semibold text-gray-900 mb-3">Financial Summary</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-700">Total Amount:</span>
+                    <span className="font-semibold text-gray-900">{formatCurrency(selectedInvoice.totalAmount)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-700">Paid Amount:</span>
+                    <span className="font-semibold text-green-700">{formatCurrency(selectedInvoice.paidAmount)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-gray-200 pt-2 mt-2">
+                    <span className="text-gray-700 font-semibold">Balance Due:</span>
+                    <span className={`font-bold text-lg ${selectedInvoice.balanceAmount > 0 ? 'text-orange-700' : 'text-green-700'}`}>
+                      {formatCurrency(selectedInvoice.balanceAmount)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => downloadInvoice(selectedInvoice)}
+                  className="flex-1 btn btn-primary"
+                >
+                  <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download PDF
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDetailsModal(false);
+                    openPaymentModal(selectedInvoice);
+                  }}
+                  className="flex-1 btn btn-success"
+                >
+                  <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" />
+                  </svg>
+                  Record Payment
+                </button>
+                <button
+                  onClick={() => setShowDetailsModal(false)}
+                  className="flex-1 btn"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
