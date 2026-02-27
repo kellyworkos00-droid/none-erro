@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
   const api = createApiResponse(request);
 
   try {
-    await requirePermission(request, 'admin');
+    await requirePermission(request, 'hr.employee.view');
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
   const api = createApiResponse(request);
 
   try {
-    const user = await requirePermission(request, 'admin');
+    const user = await requirePermission(request, 'hr.employee.create');
     const body = await request.json();
     const data = createEmployeeSchema.parse(body);
 

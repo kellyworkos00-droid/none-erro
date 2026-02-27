@@ -3,7 +3,7 @@
  * Usage: npx ts-node scripts/assign-pos-role.ts
  */
 
-import prisma from '@/lib/prisma';
+import prisma from '../lib/prisma';
 
 async function assignPosRole() {
   try {

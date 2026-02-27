@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   const api = createApiResponse(request);
 
   try {
-    await requirePermission(request, 'admin');
+    await requirePermission(request, 'hr.department.view');
 
     const departments = await prisma.department.findMany({
       include: {
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
   const api = createApiResponse(request);
 
   try {
-    const user = await requirePermission(request, 'admin');
+    const user = await requirePermission(request, 'hr.department.create');
     const body = await request.json();
     const data = departmentSchema.parse(body);
 

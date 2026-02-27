@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Briefcase, DollarSign, TrendingUp, AlertCircle, Plus, Trash2, X } from 'lucide-react';
+import { Briefcase, DollarSign, TrendingUp, AlertCircle, Plus, Trash2, X, Edit } from 'lucide-react';
 
 interface ProjectSummary {
   totalProjects: number;
@@ -73,7 +73,7 @@ export default function ProjectsPage() {
   const [submittingExpense, setSubmittingExpense] = useState(false);
   const [expenseError, setExpenseError] = useState('');
   const [expenseSuccess, setExpenseSuccess] = useState('');
-
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [form, setForm] = useState<CreateProjectForm>({
     name: '',
     clientName: '',
@@ -178,6 +178,7 @@ export default function ProjectsPage() {
   const openExpenseModal = async (projectId: string) => {
     setSelectedProjectId(projectId);
     setShowExpenseModal(true);
+    setEditingExpenseId(null);
     setExpenseForm({
       description: '',
       category: 'LABOR',
@@ -188,6 +189,19 @@ export default function ProjectsPage() {
     setExpenseSuccess('');
     setExpenseError('');
     await loadExpenses(projectId);
+  };
+
+  const handleEditExpense = (expense: ProjectExpense) => {
+    setEditingExpenseId(expense.id);
+    setExpenseForm({
+      description: expense.description,
+      category: expense.category,
+      amount: expense.amount.toString(),
+      date: new Date(expense.date).toISOString().split('T')[0],
+      notes: expense.notes || '',
+    });
+    setExpenseSuccess('');
+    setExpenseError('');
   };
 
   const handleAddExpense = async (event: React.FormEvent) => {
@@ -219,8 +233,14 @@ export default function ProjectsPage() {
       setExpenseError('');
       setExpenseSuccess('');
 
-      const response = await fetch(`/api/projects/${selectedProjectId}/expenses`, {
-        method: 'POST',
+      const url = editingExpenseId
+        ? `/api/projects/${selectedProjectId}/expenses/${editingExpenseId}`
+        : `/api/projects/${selectedProjectId}/expenses`;
+      
+      const method = editingExpenseId ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
@@ -236,11 +256,12 @@ export default function ProjectsPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        setExpenseError(error.message || 'Failed to add expense');
+        setExpenseError(error.message || `Failed to ${editingExpenseId ? 'update' : 'add'} expense`);
         return;
       }
 
-      setExpenseSuccess('Expense added successfully');
+      setExpenseSuccess(`Expense ${editingExpenseId ? 'updated' : 'added'} successfully`);
+      setEditingExpenseId(null);
       setExpenseForm({
         description: '',
         category: 'LABOR',
@@ -253,8 +274,8 @@ export default function ProjectsPage() {
       await loadExpenses(selectedProjectId);
       await fetchData();
     } catch (err) {
-      console.error('Error adding expense:', err);
-      setExpenseError('Failed to add expense');
+      console.error('Error saving expense:', err);
+      setExpenseError('Failed to save expense');
     } finally {
       setSubmittingExpense(false);
     }
@@ -728,7 +749,9 @@ export default function ProjectsPage() {
 
               {/* Add Expense Form */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Daily Expense</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  {editingExpenseId ? 'Edit Expense' : 'Add Daily Expense'}
+                </h3>
                 <form onSubmit={handleAddExpense} className="space-y-4">
                   {expenseError && (
                     <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
@@ -798,8 +821,30 @@ export default function ProjectsPage() {
                     className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     <Plus className="w-4 h-4" />
-                    {submittingExpense ? 'Adding...' : 'Add Expense'}
+                    {submittingExpense 
+                      ? (editingExpenseId ? 'Updating...' : 'Adding...') 
+                      : (editingExpenseId ? 'Update Expense' : 'Add Expense')
+                    }
                   </button>
+                  {editingExpenseId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingExpenseId(null);
+                        setExpenseForm({
+                          description: '',
+                          category: 'LABOR',
+                          amount: '',
+                          date: new Date().toISOString().split('T')[0],
+                          notes: '',
+                        });
+                        setExpenseError('');
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 text-sm font-medium transition-colors"
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
                 </form>
               </div>
 
@@ -828,14 +873,26 @@ export default function ProjectsPage() {
                             {expense.notes && <span className="italic">{expense.notes}</span>}
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-gray-900">{toMoney(expense.amount)}</p>
-                          <button
-                            onClick={() => handleDeleteExpense(expense.id)}
-                            className="text-red-600 hover:text-red-700 text-xs font-medium mt-1"
-                          >
-                            <Trash2 className="w-4 h-4 inline" />
-                          </button>
+                        <div className="text-right flex items-center gap-2">
+                          <div>
+                            <p className="font-semibold text-gray-900">{toMoney(expense.amount)}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <button
+                                onClick={() => handleEditExpense(expense)}
+                                className="text-blue-600 hover:text-blue-700 text-xs font-medium"
+                                title="Edit expense"
+                              >
+                                <Edit className="w-4 h-4 inline" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteExpense(expense.id)}
+                                className="text-red-600 hover:text-red-700 text-xs font-medium"
+                                title="Delete expense"
+                              >
+                                <Trash2 className="w-4 h-4 inline" />
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
