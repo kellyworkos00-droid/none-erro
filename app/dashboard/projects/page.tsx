@@ -235,8 +235,8 @@ export default function ProjectsPage() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        setExpenseError(error.message || 'Failed to add expense');
+        const errorData = await response.json();
+        setExpenseError(errorData?.error?.message || errorData?.message || 'Failed to add expense');
         return;
       }
 
