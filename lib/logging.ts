@@ -137,6 +137,7 @@ export async function log(
           action: `${category}_${level}`,
           entityType: category.toString(),
           entityId: String(options.metadata?.entityId || 'unknown'),
+          description: message,
           metadata: JSON.stringify(entry),
           createdAt: new Date(),
         },
