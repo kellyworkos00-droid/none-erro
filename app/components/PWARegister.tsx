@@ -36,19 +36,14 @@ export function PWARegister() {
         });
 
       // Handle installation prompt
-      let deferredPrompt: any;
-
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
-        deferredPrompt = e;
-
         // Show install button or banner
         console.log('PWA install prompt available');
       });
 
       window.addEventListener('appinstalled', () => {
         console.log('PWA installed successfully');
-        deferredPrompt = null;
       });
     }
   }, []);
