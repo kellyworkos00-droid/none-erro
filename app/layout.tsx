@@ -5,6 +5,7 @@ import './globals.css';
 import Header from './components/Header';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { PWARegister } from './components/PWARegister';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -39,13 +40,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="icon" href="/images/elegant-logo.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/images/elegant-logo.svg" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Elegante" />
+        <meta name="apple-mobile-web-app-title" content="Kelly OS" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
       <body className={`${spaceGrotesk.variable} ${fraunces.variable} font-sans`}>
+        <PWARegister />
         <OfflineIndicator />
         <ErrorBoundary>
           <Header />

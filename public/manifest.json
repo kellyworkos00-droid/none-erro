@@ -11,87 +11,16 @@
   "lang": "en",
   "dir": "ltr",
   "categories": ["business", "productivity"],
-  "screenshots": [
-    {
-      "src": "/images/screenshot1.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "form_factor": "narrow"
-    },
-    {
-      "src": "/images/screenshot2.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide"
-    }
-  ],
+  "screenshots": [],
   "icons": [
     {
-      "src": "/images/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/images/icon-192-maskable.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/images/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/images/icon-512-maskable.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "src": "/images/elegant-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ],
-  "shortcuts": [
-    {
-      "name": "Dashboard",
-      "short_name": "Dashboard",
-      "description": "View financial dashboard",
-      "url": "/dashboard",
-      "icons": [
-        {
-          "src": "/images/icon-96.png",
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
-    },
-    {
-      "name": "Reports",
-      "short_name": "Reports",
-      "description": "Access reports and analytics",
-      "url": "/reports",
-      "icons": [
-        {
-          "src": "/images/icon-96.png",
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
-    },
-    {
-      "name": "Invoices",
-      "short_name": "Invoices",
-      "description": "Manage invoices",
-      "url": "/invoices",
-      "icons": [
-        {
-          "src": "/images/icon-96.png",
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
-    }
-  ],
+  "shortcuts": [],
   "share_target": {
     "action": "/api/share",
     "method": "POST",
