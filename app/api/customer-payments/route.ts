@@ -15,7 +15,7 @@ import type { TransactionClient } from '@/lib/types';
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = await requirePermission(request, 'invoice.collect');
+    const user = await requirePermission(request, 'payment.create');
     const body = await request.json();
 
     const { invoiceId, amount, paymentDate, paymentMethod, reference } = body;
