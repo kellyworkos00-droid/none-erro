@@ -129,7 +129,7 @@ export async function recordPayment(
       const payment = await tx.payment.create({
         data: {
           invoiceId: options.invoiceId,
-          customerId: options.customerId || invoice?.customerId,
+          customerId: options.customerId || invoice!.customerId,
           amount: options.amount,
           paymentDate: options.paymentDate,
           paymentMethod: options.paymentMethod,
