@@ -50,7 +50,7 @@ export async function GET(
   const api = createApiResponse(request);
 
   try {
-    await requirePermission(request, 'admin');
+    await requirePermission(request, 'employee.view');
 
     const employee = await prisma.employee.findUnique({
       where: { id: params.id },
@@ -95,7 +95,7 @@ export async function PUT(
   const api = createApiResponse(request);
 
   try {
-    const user = await requirePermission(request, 'admin');
+    const user = await requirePermission(request, 'employee.edit');
     const body = await request.json();
     const data = updateEmployeeSchema.parse(body);
 
@@ -166,7 +166,7 @@ export async function DELETE(
   const api = createApiResponse(request);
 
   try {
-    const user = await requirePermission(request, 'admin');
+    const user = await requirePermission(request, 'employee.delete');
 
     const employee = await prisma.employee.findUnique({
       where: { id: params.id },

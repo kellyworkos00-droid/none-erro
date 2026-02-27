@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
   const api = createApiResponse(request);
 
   try {
-    await requirePermission(request, 'hr.leave.view');
+    await requirePermission(request, 'leave.view');
 
     const { searchParams } = new URL(request.url);
     const employeeId = searchParams.get('employeeId');
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
   const api = createApiResponse(request);
 
   try {
-    const user = await requirePermission(request, 'hr.leave.view');
+    const user = await requirePermission(request, 'leave.create');
     const body = await request.json();
     const data = createLeaveSchema.parse(body);
 
@@ -175,7 +175,7 @@ export async function PATCH(request: NextRequest) {
   const api = createApiResponse(request);
 
   try {
-    const user = await requirePermission(request, 'hr.leave.approve');
+    const user = await requirePermission(request, 'leave.approve');
     const { searchParams } = new URL(request.url);
     const leaveId = searchParams.get('id');
 

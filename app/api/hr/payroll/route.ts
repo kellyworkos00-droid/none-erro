@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
   const api = createApiResponse(request);
 
   try {
-    await requirePermission(request, 'hr.payroll.view');
+    await requirePermission(request, 'payroll.view');
 
     const { searchParams } = new URL(request.url);
     const month = searchParams.get('month');
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
   const api = createApiResponse(request);
 
   try {
-    const user = await requirePermission(request, 'hr.payroll.create');
+    const user = await requirePermission(request, 'payroll.create');
     const body = await request.json();
     const data = processPayrollSchema.parse(body);
 
