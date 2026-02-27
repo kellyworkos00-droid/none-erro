@@ -1240,6 +1240,7 @@ model Department {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   
+  manager     Employee?   @relation("DepartmentManager", fields: [managerId], references: [id], onDelete: SetNull)
   employees   Employee[]
   
   @@map("departments")
@@ -1285,6 +1286,7 @@ model Employee {
   
   // Relationships
   department      Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  departmentsManagedBy Department[] @relation("DepartmentManager")
   payrolls        Payroll[]
   leaves          Leave[]
   attendances     Attendance[]
