@@ -427,7 +427,7 @@ export async function recordRefund(
         );
 
         await tx.invoice.update({
-          where: { id: payment.invoiceId },
+          where: { id: payment.invoice.id },
           data: {
             paidAmount: Math.max(newPaidAmount.toNumber(), 0),
             balanceAmount: newBalanceAmount.toNumber(),
