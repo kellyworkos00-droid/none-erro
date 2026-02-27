@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requirePermission } from '@/lib/authorization';
+import type { Payment } from '@prisma/client';
 
 /**
  * GET /api/invoices/:id/download
@@ -194,7 +195,7 @@ export async function GET(
               <tbody>
                 ${invoice.payments
                   .map(
-                    (payment: any) => `
+                    (payment: Payment) => `
                   <tr>
                     <td>${new Date(payment.paymentDate).toLocaleDateString('en-KE')}</td>
                     <td>${payment.paymentMethod}</td>

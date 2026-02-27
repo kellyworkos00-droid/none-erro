@@ -10,7 +10,7 @@ const expenseSchema = z.object({
   category: z.enum(['LABOR', 'MATERIALS', 'EQUIPMENT', 'SUBCONTRACTOR', 'OVERHEAD', 'OTHER']),
   description: z.string().min(1),
   amount: z.number().min(0),
-  expenseDate: z.string().datetime().optional(),
+  date: z.string().optional(),
   receiptUrl: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -70,7 +70,7 @@ export async function POST(
         category: parsed.data.category,
         description: parsed.data.description,
         amount: parsed.data.amount,
-        date: parsed.data.expenseDate ? new Date(parsed.data.expenseDate) : new Date(),
+        date: parsed.data.date ? new Date(parsed.data.date) : new Date(),
         notes: parsed.data.notes,
       },
     });
