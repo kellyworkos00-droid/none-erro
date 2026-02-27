@@ -15,7 +15,7 @@ const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     'pos.edit',
     'pos.checkout',
     'pos.payment',
-    'payment.create',
+    'invoice.view',
     'customer.view',
   ],
   FINANCE_MANAGER: [
