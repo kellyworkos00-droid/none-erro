@@ -1,10 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
 
 export function PWARegister() {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -40,7 +44,7 @@ export function PWARegister() {
               }
             });
           })
-          .catch((error) => {
+          .catch((error: Error) => {
             console.warn('⚠️ Service Worker registration failed:', error);
           });
       });
@@ -49,15 +53,14 @@ export function PWARegister() {
     }
 
     // Handle PWA install prompt
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
+    const handleBeforeInstallPrompt = (e: Event) => {
+      const event = e as BeforeInstallPromptEvent;
+      event.preventDefault();
       console.log('📱 PWA install prompt available');
     };
 
     const handleAppInstalled = () => {
       console.log('✅ PWA installed successfully');
-      setDeferredPrompt(null);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
