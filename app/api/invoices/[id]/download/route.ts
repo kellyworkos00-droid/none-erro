@@ -166,7 +166,7 @@ export async function GET(
                       .map(
                         (item) => `
                   <tr>
-                    <td>${item.product?.name || item.product?.code || 'Product'}</td>
+                    <td>${item.product?.name || item.product?.sku || 'Product'}</td>
                     <td style="text-align: center;">${item.quantity}</td>
                     <td style="text-align: right;">${item.unitPrice.toFixed(2)}</td>
                     <td style="text-align: right;">${item.totalPrice.toFixed(2)}</td>

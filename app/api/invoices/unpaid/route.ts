@@ -54,7 +54,6 @@ export async function GET(request: NextRequest) {
           name: invoice.customer.name,
           email: invoice.customer.email,
           phone: invoice.customer.phone,
-          companyName: invoice.customer.companyName,
         },
         amount: invoice.balanceAmount,
         totalAmount: invoice.totalAmount,
