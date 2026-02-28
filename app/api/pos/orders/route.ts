@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { createErrorResponse, createSuccessResponse } from '@/lib/utils';
 import { verifyToken } from '@/lib/auth';
+import { createAuditLog, getClientIp, getUserAgent } from '@/lib/audit';
 import Decimal from 'decimal.js';
 
 const MAX_PRICE_DEVIATION_PERCENT = 20;
@@ -234,6 +235,23 @@ export async function POST(request: NextRequest) {
           include: { product: true },
         },
         createdByUser: true,
+      },
+    });
+
+    // Audit log
+    await createAuditLog({
+      userId: payload.userId,
+      action: 'CREATE_POS_ORDER',
+      entityType: 'PosOrder',
+      entityId: order.id,
+      description: `Created POS order with ${items.length} item(s) - Total: ${totalAmount.toNumber()} KES`,
+      ipAddress: getClientIp(request.headers),
+      userAgent: getUserAgent(request.headers),
+      metadata: {
+        itemCount: items.length,
+        subtotal: subtotal.toNumber(),
+        totalAmount: totalAmount.toNumber(),
+        customerId: customerId || null,
       },
     });
 

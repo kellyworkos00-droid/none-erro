@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
 import { createErrorResponse, createSuccessResponse } from '@/lib/utils';
+import { createAuditLog, getClientIp, getUserAgent } from '@/lib/audit';
 
 export async function PATCH(
   request: NextRequest,
@@ -91,7 +92,40 @@ export async function PATCH(
           balanceAmount,
         },
       });
+
+      // Audit log for invoice status update
+      await createAuditLog({
+        userId: payload.userId,
+        action: 'UPDATE_INVOICE',
+        entityType: 'Invoice',
+        entityId: order.invoiceId,
+        description: `Invoice status updated to ${invoiceStatus} (Paid: ${paidAmount}/${order.invoice?.totalAmount})`,
+        ipAddress: getClientIp(request.headers),
+        userAgent: getUserAgent(request.headers),
+        metadata: {
+          orderPaymentStatus: paymentStatus,
+          invoiceStatus,
+          paidAmount,
+          totalAmount: order.invoice?.totalAmount,
+        },
+      });
     }
+
+    // Audit log for POS order status update
+    await createAuditLog({
+      userId: payload.userId,
+      action: 'UPDATE_POS_ORDER',
+      entityType: 'PosOrder',
+      entityId: params.id,
+      description: `POS order payment status updated to ${paymentStatus}`,
+      ipAddress: getClientIp(request.headers),
+      userAgent: getUserAgent(request.headers),
+      metadata: {
+        paymentStatus,
+        orderId: params.id,
+        totalAmount: order.totalAmount,
+      },
+    });
 
     return NextResponse.json(
       createSuccessResponse(updatedOrder, 'Payment status updated successfully')
