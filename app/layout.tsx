@@ -40,12 +40,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/images/elegant-logo.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/images/elegant-logo.svg" />
+        <link rel="icon" href="/images/elegant-logo.jpg" type="image/jpeg" />
+        <link rel="apple-touch-icon" href="/images/elegant-logo.jpg" />
+        <link rel="manifest" href="/manifest.json" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Kelly OS" />
+        <meta name="theme-color" content="#3b82f6" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
       <body className={`${spaceGrotesk.variable} ${fraunces.variable} font-sans`}>

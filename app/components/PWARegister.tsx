@@ -1,51 +1,72 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export function PWARegister() {
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    if (typeof window === 'undefined') return;
+
+    // Check if service workers are supported
+    if ('serviceWorker' in navigator) {
       // Register service worker
-      navigator.serviceWorker
-        .register('/service-worker.js')
-        .then((registration) => {
-          console.log('Service Worker registered:', registration.scope);
+      window.addEventListener('load', () => {
+        navigator.serviceWorker
+          .register('/service-worker.js', {
+            scope: '/',
+          })
+          .then((registration) => {
+            console.log('✅ Service Worker registered successfully:', registration.scope);
 
-          // Check for updates periodically
-          setInterval(() => {
-            registration.update();
-          }, 60000); // Check every minute
+            // Check for updates every hour
+            setInterval(() => {
+              registration.update();
+            }, 60 * 60 * 1000);
 
-          // Listen for updates
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // New service worker available
-                  if (confirm('New version available! Reload to update?')) {
-                    window.location.reload();
+            // Listen for updates
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              if (newWorker) {
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    console.log('🔄 New version available!');
+                    if (confirm('New version available! Reload to update?')) {
+                      newWorker.postMessage({ type: 'SKIP_WAITING' });
+                      window.location.reload();
+                    }
                   }
-                }
-              });
-            }
+                });
+              }
+            });
+          })
+          .catch((error) => {
+            console.warn('⚠️ Service Worker registration failed:', error);
           });
-        })
-        .catch((error) => {
-          console.error('Service Worker registration failed:', error);
-        });
-
-      // Handle installation prompt
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        // Show install button or banner
-        console.log('PWA install prompt available');
       });
-
-      window.addEventListener('appinstalled', () => {
-        console.log('PWA installed successfully');
-      });
+    } else {
+      console.warn('⚠️ Service Workers not supported in this browser');
     }
+
+    // Handle PWA install prompt
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      console.log('📱 PWA install prompt available');
+    };
+
+    const handleAppInstalled = () => {
+      console.log('✅ PWA installed successfully');
+      setDeferredPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
   }, []);
 
   return null;
