@@ -1025,8 +1025,8 @@ export default function ProductsPage() {
       )}
 
       <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="table">
+        <div className="w-full">
+          <table className="table w-full">
             <thead>
               <tr>
                 {!stockManagedFromAdjustments && (
@@ -1040,13 +1040,13 @@ export default function ProductsPage() {
                   </th>
                 )}
                 <th>Product</th>
-                <th>Category</th>
+                <th className="hidden lg:table-cell">Category</th>
                 <th>Stock</th>
-                <th>Reorder</th>
+                <th className="hidden md:table-cell">Reorder</th>
                 <th>Price</th>
-                <th>Cost</th>
-                <th>Value</th>
-                <th>Status</th>
+                <th className="hidden xl:table-cell">Cost</th>
+                <th className="hidden xl:table-cell">Value</th>
+                <th className="hidden sm:table-cell">Status</th>
                 <th className="text-right">Actions</th>
               </tr>
             </thead>
@@ -1065,8 +1065,8 @@ export default function ProductsPage() {
                       </td>
                     )}
                     <td>
-                      <div className="flex items-center gap-3">
-                        <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-50 border border-gray-200">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden bg-gray-50 border border-gray-200 flex-shrink-0">
                           {product.imageUrl ? (
                             <Image
                               src={product.imageUrl}
@@ -1080,30 +1080,30 @@ export default function ProductsPage() {
                             </div>
                           )}
                         </div>
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">{product.name}</p>
-                          <p className="text-xs text-gray-500">{product.sku}</p>
+                        <div className="min-w-0">
+                          <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate">{product.name}</p>
+                          <p className="text-xs text-gray-500 truncate">{product.sku}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="text-sm text-gray-600">{product.category || '-'}</td>
+                    <td className="hidden lg:table-cell text-sm text-gray-600">{product.category || '-'}</td>
                     <td>
-                      <p className="text-sm font-medium text-gray-900">
-                        {product.quantity} {product.unit}
+                      <p className="text-xs sm:text-sm font-medium text-gray-900">
+                        {product.quantity} <span className="text-gray-500">{product.unit}</span>
                       </p>
-                      <span className={`badge ${stock.badge}`}>{stock.label}</span>
+                      <span className={`badge text-xs ${stock.badge}`}>{stock.label}</span>
                     </td>
-                    <td className="text-sm text-gray-600">{product.reorderLevel}</td>
-                    <td className="text-sm font-semibold text-gray-900">
+                    <td className="hidden md:table-cell text-sm text-gray-600">{product.reorderLevel}</td>
+                    <td className="text-xs sm:text-sm font-semibold text-gray-900">
                       {formatCurrency(product.price)}
                     </td>
-                    <td className="text-sm text-gray-600">
+                    <td className="hidden xl:table-cell text-sm text-gray-600">
                       {product.cost !== null ? formatCurrency(product.cost) : '-'}
                     </td>
-                    <td className="text-sm font-semibold text-gray-900">
+                    <td className="hidden xl:table-cell text-sm font-semibold text-gray-900">
                       {formatCurrency(getInventoryValue(product))}
                     </td>
-                    <td>
+                    <td className="hidden sm:table-cell">
                       <span
                         className={`badge ${
                           product.status === 'ACTIVE'
@@ -1120,25 +1120,26 @@ export default function ProductsPage() {
                     </td>
                     <td className="text-right">
                       {stockManagedFromAdjustments ? (
-                        <Link href="/dashboard/stock-adjustments" className="btn-secondary inline-flex items-center gap-1">
+                        <Link href="/dashboard/stock-adjustments" className="btn-secondary inline-flex items-center gap-1 text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-2">
                           <Plus size={14} />
-                          Adjust Stock
+                          <span className="hidden sm:inline">Adjust Stock</span>
+                          <span className="sm:hidden">Adjust</span>
                         </Link>
                       ) : (
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-1 sm:gap-2">
                           <button
                             onClick={() => handleEdit(product)}
-                            className="btn-secondary flex items-center gap-1"
+                            className="btn-secondary flex items-center gap-1 text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-2"
                           >
                             <Edit2 size={14} />
-                            Edit
+                            <span className="hidden sm:inline">Edit</span>
                           </button>
                           <button
                             onClick={() => handleDelete(product)}
-                            className="btn-danger flex items-center gap-1"
+                            className="btn-danger flex items-center gap-1 text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-2"
                           >
                             <Trash2 size={14} />
-                            Delete
+                            <span className="hidden sm:inline">Delete</span>
                           </button>
                         </div>
                       )}
@@ -1148,7 +1149,7 @@ export default function ProductsPage() {
               })}
               {filteredProducts.length === 0 && (
                 <tr>
-                  <td colSpan={stockManagedFromAdjustments ? 9 : 10} className="text-center text-sm text-gray-500 py-10">
+                  <td colSpan={10} className="text-center text-sm text-gray-500 py-10">
                     No products found for the current filters.
                   </td>
                 </tr>
