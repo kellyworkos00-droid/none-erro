@@ -213,18 +213,18 @@ export default function InvoicesPage() {
         <div className="card-header">
           <h2 className="text-lg font-semibold text-gray-900">Invoices</h2>
         </div>
-        <div className="overflow-x-auto">
-          <table className="table">
+        <div className="w-full">
+          <table className="table w-full">
             <thead>
               <tr>
-                <th>Invoice Number</th>
+                <th>Invoice #</th>
                 <th>Customer</th>
-                <th>Issue Date</th>
-                <th>Due Date</th>
-                <th>Total Amount</th>
-                <th>Paid Amount</th>
+                <th className="hidden md:table-cell">Issue Date</th>
+                <th className="hidden md:table-cell">Due Date</th>
+                <th>Total</th>
+                <th className="hidden lg:table-cell">Paid</th>
                 <th>Balance</th>
-                <th>Status</th>
+                <th className="hidden sm:table-cell">Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -246,15 +246,15 @@ export default function InvoicesPage() {
               ) : (
                 invoices.map((invoice) => (
                   <tr key={invoice.id}>
-                    <td className="text-sm font-medium">{invoice.invoiceNumber}</td>
-                    <td className="text-sm">{invoice.customer?.name}</td>
-                    <td className="text-sm">{formatDate(invoice.issueDate)}</td>
-                    <td className="text-sm">{formatDate(invoice.dueDate)}</td>
-                    <td className="text-sm font-semibold">{formatCurrency(invoice.totalAmount)}</td>
-                    <td className="text-sm">{formatCurrency(invoice.paidAmount)}</td>
-                    <td className="text-sm">{formatCurrency(invoice.balanceAmount)}</td>
-                    <td>
-                      <span className={`badge ${getStatusBadge(invoice.status)}`}>
+                    <td className="text-xs sm:text-sm font-medium">{invoice.invoiceNumber}</td>
+                    <td className="text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">{invoice.customer?.name}</td>
+                    <td className="hidden md:table-cell text-xs sm:text-sm">{formatDate(invoice.issueDate)}</td>
+                    <td className="hidden md:table-cell text-xs sm:text-sm">{formatDate(invoice.dueDate)}</td>
+                    <td className="text-xs sm:text-sm font-semibold">{formatCurrency(invoice.totalAmount)}</td>
+                    <td className="hidden lg:table-cell text-xs sm:text-sm">{formatCurrency(invoice.paidAmount)}</td>
+                    <td className="text-xs sm:text-sm font-medium">{formatCurrency(invoice.balanceAmount)}</td>
+                    <td className="hidden sm:table-cell">
+                      <span className={`badge text-xs ${getStatusBadge(invoice.status)}`}>
                         {invoice.status}
                       </span>
                     </td>
@@ -262,12 +262,12 @@ export default function InvoicesPage() {
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => openDetailsModal(invoice)}
-                          className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+                          className="text-blue-600 hover:text-blue-700 font-medium text-xs sm:text-sm"
                           title="View Details"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4 inline mr-1"
+                            className="h-4 w-4 inline sm:mr-1"
                             viewBox="0 0 20 20"
                             fill="currentColor"
                           >
@@ -278,16 +278,16 @@ export default function InvoicesPage() {
                               clipRule="evenodd"
                             />
                           </svg>
-                          View
+                          <span className="hidden sm:inline">View</span>
                         </button>
                         <button
                           onClick={() => downloadInvoice(invoice)}
-                          className="text-purple-600 hover:text-purple-700 font-medium text-sm"
+                          className="text-purple-600 hover:text-purple-700 font-medium text-xs sm:text-sm"
                           title="Download PDF"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4 inline mr-1"
+                            className="h-4 w-4 inline sm:mr-1"
                             viewBox="0 0 20 20"
                             fill="currentColor"
                           >
@@ -297,33 +297,33 @@ export default function InvoicesPage() {
                               clipRule="evenodd"
                             />
                           </svg>
-                          Download
+                          <span className="hidden md:inline">Download</span>
                         </button>
                         <button
                           onClick={() => openPaymentModal(invoice)}
-                          className="text-green-600 hover:text-green-700 font-medium text-sm"
+                          className="text-green-600 hover:text-green-700 font-medium text-xs sm:text-sm"
                           title="Record Payment"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4 inline mr-1"
+                            className="h-4 w-4 inline sm:mr-1"
                             viewBox="0 0 20 20"
                             fill="currentColor"
                           >
                             <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" />
                           </svg>
-                          Pay
+                          <span className="hidden md:inline">Pay</span>
                         </button>
                         <a
                           href={`/dashboard/invoices/print/${invoice.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-primary-600 hover:text-primary-700 font-medium text-sm"
+                          className="text-primary-600 hover:text-primary-700 font-medium text-xs sm:text-sm hidden lg:inline-flex items-center"
                           title="Print Invoice"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4 inline mr-1"
+                            className="h-4 w-4 inline sm:mr-1"
                             viewBox="0 0 20 20"
                             fill="currentColor"
                           >
@@ -333,7 +333,7 @@ export default function InvoicesPage() {
                               clipRule="evenodd"
                             />
                           </svg>
-                          Print
+                          <span className="hidden lg:inline">Print</span>
                         </a>
                       </div>
                     </td>
