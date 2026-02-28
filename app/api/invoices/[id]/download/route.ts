@@ -24,6 +24,15 @@ export async function GET(
           where: { status: 'CONFIRMED' },
           orderBy: { paymentDate: 'desc' },
         },
+        posOrders: {
+          include: {
+            orderItems: {
+              include: {
+                product: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -144,16 +153,35 @@ export async function GET(
             <thead>
               <tr>
                 <th>Description</th>
+                <th style="text-align: center;">Quantity</th>
+                <th style="text-align: right;">Unit Price (KES)</th>
                 <th style="text-align: right;">Amount (KES)</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>Subtotal</td>
+              ${
+                invoice.posOrders && invoice.posOrders.length > 0
+                  ? invoice.posOrders
+                      .flatMap((order) => order.orderItems)
+                      .map(
+                        (item) => `
+                  <tr>
+                    <td>${item.product?.name || item.product?.code || 'Product'}</td>
+                    <td style="text-align: center;">${item.quantity}</td>
+                    <td style="text-align: right;">${item.unitPrice.toFixed(2)}</td>
+                    <td style="text-align: right;">${item.totalPrice.toFixed(2)}</td>
+                  </tr>
+                `
+                      )
+                      .join('')
+                  : '<tr><td colspan="4" style="text-align: center; color: #999;">No items</td></tr>'
+              }
+              <tr style="border-top: 2px solid #1f2937; font-weight: bold;">
+                <td colspan="3" style="text-align: right;">Subtotal:</td>
                 <td style="text-align: right;">${(invoice.subtotal || invoice.totalAmount).toFixed(2)}</td>
               </tr>
-              <tr>
-                <td>Tax</td>
+              <tr style="font-weight: bold;">
+                <td colspan="3" style="text-align: right;">Tax:</td>
                 <td style="text-align: right;">${(invoice.taxAmount || 0).toFixed(2)}</td>
               </tr>
             </tbody>
