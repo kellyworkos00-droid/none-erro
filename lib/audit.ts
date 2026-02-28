@@ -63,7 +63,8 @@ export type AuditAction =
   | 'REVERSE_PAYMENT'
   | 'DELETE_RECORD'
   | 'EXPORT_DATA'
-  | 'UPDATE_CREDIT_NOTE';
+  | 'UPDATE_CREDIT_NOTE'
+  | 'SEND_SMS_REMINDER';
 
 interface AuditLogData {
   userId: string;

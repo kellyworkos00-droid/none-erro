@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import toast from 'react-hot-toast';
 
 interface Invoice {
   id: string;
@@ -12,7 +13,7 @@ interface Invoice {
   paidAmount: number;
   balanceAmount: number;
   status: string;
-  customer?: { name?: string | null } | null;
+  customer?: { name?: string | null; phone?: string | null } | null;
 }
 
 export default function InvoicesPage() {
@@ -31,6 +32,7 @@ export default function InvoicesPage() {
     paymentMethod: 'CASH',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [sendingSms, setSendingSms] = useState<string | null>(null); // Track invoice ID being sent SMS
 
   useEffect(() => {
     setCustomerIdFilter(initialCustomerId);
@@ -174,6 +176,45 @@ export default function InvoicesPage() {
     }
   };
 
+  const sendSmsReminder = async (invoice: Invoice) => {
+    // Check if customer has phone number
+    if (!invoice.customer?.phone) {
+      toast.error('Customer does not have a phone number on file');
+      return;
+    }
+
+    // Check if invoice needs a reminder (unpaid or overdue)
+    if (invoice.status === 'PAID') {
+      toast.error('Invoice is already paid');
+      return;
+    }
+
+    try {
+      setSendingSms(invoice.id);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/invoices/${invoice.id}/send-sms-reminder`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error?.message || 'Failed to send SMS');
+      }
+
+      toast.success(`SMS reminder sent to ${invoice.customer.name}`);
+    } catch (error) {
+      console.error('SMS error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to send SMS reminder');
+    } finally {
+      setSendingSms(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Filters */}
@@ -314,6 +355,26 @@ export default function InvoicesPage() {
                           </svg>
                           <span className="hidden md:inline">Pay</span>
                         </button>
+                        {/* SMS Reminder Button - only show for unpaid/overdue invoices with phone */}
+                        {invoice.status !== 'PAID' && invoice.customer?.phone && (
+                          <button
+                            onClick={() => sendSmsReminder(invoice)}
+                            disabled={sendingSms === invoice.id}
+                            className="text-orange-600 hover:text-orange-700 font-medium text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={sendingSms === invoice.id ? 'Sending SMS...' : 'Send SMS Reminder'}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-4 w-4 inline sm:mr-1"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
+                              <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
+                            </svg>
+                            <span className="hidden lg:inline">{sendingSms === invoice.id ? 'Sending...' : 'SMS'}</span>
+                          </button>
+                        )}
                         <a
                           href={`/dashboard/invoices/print/${invoice.id}`}
                           target="_blank"
@@ -649,6 +710,22 @@ export default function InvoicesPage() {
                   </svg>
                   Download PDF
                 </button>
+                {selectedInvoice.status !== 'PAID' && selectedInvoice.customer?.phone && (
+                  <button
+                    onClick={() => {
+                      sendSmsReminder(selectedInvoice);
+                      setShowDetailsModal(false);
+                    }}
+                    disabled={sendingSms === selectedInvoice.id}
+                    className="flex-1 btn bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
+                      <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
+                    </svg>
+                    {sendingSms === selectedInvoice.id ? 'Sending SMS...' : 'Send SMS Reminder'}
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setShowDetailsModal(false);
