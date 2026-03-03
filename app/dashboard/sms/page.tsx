@@ -104,7 +104,6 @@ export default function SmsManagementPage() {
       }
 
       toast.success('SMS reminder sent successfully!');
-      setSelectedInvoice('');
       fetchUnpaidInvoices();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to send SMS reminder');
