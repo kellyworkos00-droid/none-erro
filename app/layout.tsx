@@ -6,6 +6,10 @@ import Header from './components/Header';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { PWARegister } from './components/PWARegister';
+import { ThemeProvider } from './components/ThemeProvider';
+import { CommandPalette } from './components/CommandPalette';
+import { ScrollToTop } from './components/ScrollToTop';
+import { Footer } from './components/Footer';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -51,13 +55,17 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
       <body className={`${spaceGrotesk.variable} ${fraunces.variable} font-sans`}>
-        <PWARegister />
-        <OfflineIndicator />
-        <ErrorBoundary>
-          <Header />
-          {children}
-          <Toaster
-            position="top-right"
+        <ThemeProvider>
+          <PWARegister />
+          <OfflineIndicator />
+          <ErrorBoundary>
+            <Header />
+            <CommandPalette />
+            {children}
+            <Footer />
+            <ScrollToTop />
+            <Toaster
+              position="top-right"
             reverseOrder={false}
             gutter={8}
             toastOptions={{
@@ -71,6 +79,7 @@ export default function RootLayout({
             }}
           />
         </ErrorBoundary>
+        </ThemeProvider>
       </body>
     </html>
   );
