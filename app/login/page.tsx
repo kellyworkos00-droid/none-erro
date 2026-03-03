@@ -66,7 +66,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden light">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 -left-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
@@ -75,7 +75,7 @@ export default function LoginPage() {
       </div>
 
       <div className={`max-w-md w-full mx-4 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-        <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-white/20">
+        <div className="bg-white backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-gray-100">
           {/* Logo and Header */}
           <div className="text-center mb-8">
             <div className="inline-block mb-4 relative group">
@@ -206,11 +206,19 @@ export default function LoginPage() {
             <div className="flex-1 border-t border-gray-200"></div>
           </div>
 
-          {/* Quick Access Info */}
-          <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100">
-            <p className="text-xs text-gray-600 text-center">
-              <Lock className="w-3 h-3 inline mr-1" />
+          {/* Security Info */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
+            <p className="text-xs text-gray-600 text-center flex items-center justify-center gap-2">
+              <Lock className="w-3.5 h-3.5 text-blue-600" />
               Protected by enterprise-grade encryption
+            </p>
+          </div>
+
+          {/* System Status */}
+          <div className="bg-green-50 rounded-xl p-3 border border-green-100 mt-4">
+            <p className="text-xs text-gray-600 text-center flex items-center justify-center gap-2">
+              <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+              All systems operational
             </p>
           </div>
 
