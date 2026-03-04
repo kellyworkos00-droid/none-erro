@@ -5,8 +5,7 @@ import { verifyToken } from '@/lib/auth';
 import { createAuditLog, getClientIp, getUserAgent } from '@/lib/audit';
 import Decimal from 'decimal.js';
 
-const MAX_PRICE_DEVIATION_PERCENT = 30;
-const MAX_DISCOUNT_PERCENT = 15;
+
 
 /**
  * GET /api/pos/orders
@@ -108,24 +107,15 @@ export async function POST(request: NextRequest) {
       items?: Array<{
         productId: string;
         quantity: number;
-        discount?: number;
         unitPrice?: number;
       }>;
       tax?: number;
-      discount?: number;
     };
-    const { customerId, items, tax = 0, discount = 0 } = body;
+    const { customerId, items, tax = 0 } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
         createErrorResponse('Invalid items', 'VALIDATION_ERROR'),
-        { status: 400 }
-      );
-    }
-
-    if (discount > MAX_DISCOUNT_PERCENT) {
-      return NextResponse.json(
-        createErrorResponse('Discount exceeds guardrail', 'VALIDATION_ERROR'),
         { status: 400 }
       );
     }
@@ -165,17 +155,6 @@ export async function POST(request: NextRequest) {
           ? item.unitPrice
           : product.price;
 
-      const isOverride = unitPrice !== product.price;
-      if (product.price > 0) {
-        const deviationPercent = (Math.abs(unitPrice - product.price) / product.price) * 100;
-        if (deviationPercent > MAX_PRICE_DEVIATION_PERCENT) {
-          return NextResponse.json(
-            createErrorResponse('Price override exceeds guardrail', 'VALIDATION_ERROR'),
-            { status: 400 }
-          );
-        }
-      }
-
       if (unitPrice < 0) {
         return NextResponse.json(
           createErrorResponse('Invalid unit price', 'VALIDATION_ERROR'),
@@ -188,8 +167,7 @@ export async function POST(request: NextRequest) {
     }
 
     const taxAmount = subtotal.mul(new Decimal(tax)).div(100);
-    const discountAmount = subtotal.mul(new Decimal(discount)).div(100);
-    const totalAmount = subtotal.plus(taxAmount).minus(discountAmount);
+    const totalAmount = subtotal.plus(taxAmount);
 
     // Create order with items
     const order = await prisma.posOrder.create({
@@ -197,7 +175,7 @@ export async function POST(request: NextRequest) {
         customerId: customerId || null,
         subtotal: subtotal.toNumber(),
         tax: taxAmount.toNumber(),
-        discount: discountAmount.toNumber(),
+        discount: 0,
         totalAmount: totalAmount.toNumber(),
         status: 'DRAFT',
         createdBy: payload.userId,
@@ -216,7 +194,7 @@ export async function POST(request: NextRequest) {
               quantity: item.quantity,
               unitPrice,
               totalPrice: unitPrice * item.quantity,
-              discount: item.discount || 0,
+              discount: 0,
             };
           }),
         },

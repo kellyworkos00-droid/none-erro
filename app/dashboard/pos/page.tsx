@@ -21,7 +21,6 @@ interface CartItem {
   product?: Product;
   quantity: number;
   unitPrice: number;
-  discount: number;
 }
 
 interface Customer {
@@ -58,7 +57,7 @@ interface PosOrderSummary {
   totalAmount: number;
   amountPaid?: number | null;
   tax?: number | null;
-  discount?: number | null;
+
   paymentMethod?: string | null;
   paymentStatus?: string | null;
   createdAt: string;
@@ -77,7 +76,6 @@ export default function POSPage() {
   const [loadingCustomers, setLoadingCustomers] = useState(true);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [taxRate, setTaxRate] = useState(0);
-  const [discountRate, setDiscountRate] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [showReceipt, setShowReceipt] = useState(false);
   const [lastOrder, setLastOrder] = useState<PosOrderSummary | null>(null);
@@ -93,8 +91,7 @@ export default function POSPage() {
     phone: '',
   });
 
-  const MAX_PRICE_DEVIATION_PERCENT = 30;
-  const MAX_DISCOUNT_PERCENT = 15;
+
 
   useEffect(() => {
     fetchInitialData();
@@ -204,7 +201,6 @@ export default function POSPage() {
           product,
           quantity: 1,
           unitPrice: product.price,
-          discount: 0,
         },
       ]);
       toast.success(`Added to cart`);
@@ -256,13 +252,11 @@ export default function POSPage() {
     }
 
     const tax = subtotal.mul(new Decimal(taxRate)).div(100);
-    const discount = subtotal.mul(new Decimal(discountRate)).div(100);
-    const total = subtotal.plus(tax).minus(discount);
+    const total = subtotal.plus(tax);
 
     return {
       subtotal: subtotal.toNumber(),
       tax: tax.toNumber(),
-      discount: discount.toNumber(),
       total: total.toNumber(),
     };
   };
@@ -304,12 +298,7 @@ export default function POSPage() {
     }
   };
 
-  const isPriceDeviationAllowed = (product: Product, unitPrice: number) => {
-    if (product.price <= 0) return true;
-    const deviationPercent =
-      (Math.abs(unitPrice - product.price) / product.price) * 100;
-    return deviationPercent <= MAX_PRICE_DEVIATION_PERCENT;
-  };
+
 
   const handleCreateCustomer = async () => {
     if (!customerForm.customerCode || !customerForm.name) {
@@ -368,25 +357,6 @@ export default function POSPage() {
       const token = localStorage.getItem('token');
       const totals = calculateTotals();
 
-      if (discountRate > MAX_DISCOUNT_PERCENT) {
-        toast.error(`Discount cannot exceed ${MAX_DISCOUNT_PERCENT}%`);
-        return;
-      }
-
-      const invalidOverride = cart.find((item) => {
-        if (!item.product) return false;
-        const isOverride = item.unitPrice !== item.product.price;
-        if (!isOverride) return false;
-        return !isPriceDeviationAllowed(item.product, item.unitPrice);
-      });
-
-      if (invalidOverride) {
-        toast.error(
-          `Price change exceeds ${MAX_PRICE_DEVIATION_PERCENT}% limit`
-        );
-        return;
-      }
-
       // Create order
       const orderResponse = await fetch('/api/pos/orders', {
         method: 'POST',
@@ -399,11 +369,9 @@ export default function POSPage() {
           items: cart.map((item) => ({
             productId: item.productId,
             quantity: item.quantity,
-            discount: item.discount,
             unitPrice: item.unitPrice,
           })),
           tax: taxRate,
-          discount: discountRate,
         }),
       });
 
@@ -447,7 +415,6 @@ export default function POSPage() {
       setCart([]);
       setCustomerId('');
       setTaxRate(0);
-      setDiscountRate(0);
       setPaymentMethod('CASH');
 
       // Refresh data
@@ -551,18 +518,12 @@ export default function POSPage() {
           <div className="space-y-2 mb-6">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Subtotal:</span>
-              <span>KES {(lastOrder.totalAmount - (lastOrder.tax || 0) + (lastOrder.discount || 0)).toFixed(2)}</span>
+              <span>KES {(lastOrder.totalAmount - (lastOrder.tax || 0)).toFixed(2)}</span>
             </div>
             {lastOrder.tax && lastOrder.tax > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Tax:</span>
                 <span>KES {lastOrder.tax.toFixed(2)}</span>
-              </div>
-            )}
-            {lastOrder.discount && lastOrder.discount > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Discount:</span>
-                <span>-KES {lastOrder.discount.toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between font-bold text-lg bg-blue-50 p-3 rounded">
@@ -842,11 +803,6 @@ export default function POSPage() {
                   </button>
                   <span className="flex-1 text-right font-semibold text-sm">KES {(item.unitPrice * item.quantity).toFixed(2)}</span>
                 </div>
-                {item.product && item.unitPrice !== item.product.price && (
-                  <p className="text-xs text-amber-600">
-                    Override: {item.product.price.toFixed(2)} → {item.unitPrice.toFixed(2)} (max {MAX_PRICE_DEVIATION_PERCENT}%)
-                  </p>
-                )}
               </div>
             ))
           )}
@@ -870,21 +826,6 @@ export default function POSPage() {
                   className="w-16 px-2 py-1.5 border border-gray-300 rounded text-xs"
                 />
                 <span className="font-semibold flex-1 text-right">KES {totals.tax.toFixed(2)}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-gray-600 w-16">Disc (%):</label>
-                <input
-                  type="number"
-                  min="0"
-                  max={MAX_DISCOUNT_PERCENT}
-                  value={discountRate}
-                  onChange={(e) => {
-                    const next = parseFloat(e.target.value) || 0;
-                    setDiscountRate(Math.min(Math.max(next, 0), MAX_DISCOUNT_PERCENT));
-                  }}
-                  className="w-16 px-2 py-1.5 border border-gray-300 rounded text-xs"
-                />
-                <span className="font-semibold flex-1 text-right">KES {totals.discount.toFixed(2)}</span>
               </div>
             </div>
 
@@ -918,7 +859,6 @@ export default function POSPage() {
                 setCart([]);
                 setCustomerId('');
                 setTaxRate(0);
-                setDiscountRate(0);
               }}
               className="w-full bg-gray-300 text-gray-700 py-2 rounded-xl font-medium hover:bg-gray-400 text-sm"
             >
