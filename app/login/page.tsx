@@ -74,47 +74,50 @@ export default function LoginPage() {
         <div className="absolute -bottom-8 left-20 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
       </div>
 
-      <div className={`max-w-md w-full mx-4 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-        <div className="bg-white backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-gray-100">
+      <div className={`max-w-xl w-full mx-4 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+        <div className="bg-white backdrop-blur-lg rounded-3xl shadow-2xl p-10 border border-gray-100">
           {/* Logo and Header */}
-          <div className="text-center mb-8">
-            <div className="inline-block mb-4 relative group">
+          <div className="text-center mb-10">
+            <div className="inline-block mb-6 relative group">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-300"></div>
-              <div className="relative bg-white rounded-2xl p-2 shadow-lg">
+              <div className="relative bg-white rounded-2xl p-3 shadow-lg">
                 <Image
                   src="/images/elegant-logo.jpg"
                   alt="Kelly OS Logo"
-                  width={80}
-                  height={80}
+                  width={100}
+                  height={100}
                   className="rounded-xl"
                 />
               </div>
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Kelly OS
             </h1>
-            <p className="text-gray-600 mt-2 flex items-center justify-center gap-2">
-              <Shield className="w-4 h-4" />
+            <p className="text-gray-700 mt-3 flex items-center justify-center gap-2 text-lg">
+              <Shield className="w-5 h-5" />
               Enterprise Resource Planning
             </p>
           </div>
 
           {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex items-start gap-2 animate-shake">
-                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                <span>{error}</span>
+              <div className="bg-red-50 border-2 border-red-300 text-red-800 px-5 py-4 rounded-xl text-base flex items-start gap-3 animate-shake">
+                <AlertCircle className="w-6 h-6 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold">Login Error</p>
+                  <p className="text-red-700">{error}</p>
+                </div>
               </div>
             )}
 
-            <div className="space-y-2">
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            <div className="space-y-3">
+              <label htmlFor="email" className="block text-base font-semibold text-gray-800">
                 Email Address
               </label>
               <div className="relative">
-                <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors ${focusedField === 'email' ? 'text-blue-600' : 'text-gray-400'}`}>
-                  <Mail className="h-5 w-5" />
+                <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${focusedField === 'email' ? 'text-blue-600' : 'text-gray-500'}`}>
+                  <Mail className="h-6 w-6" />
                 </div>
                 <input
                   id="email"
@@ -123,7 +126,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   onFocus={() => setFocusedField('email')}
                   onBlur={() => setFocusedField(null)}
-                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur"
+                  className="w-full pl-14 pr-4 py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-base font-medium placeholder-gray-500"
                   placeholder="your.email@company.com"
                   required
                   autoFocus
@@ -132,13 +135,13 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            <div className="space-y-3">
+              <label htmlFor="password" className="block text-base font-semibold text-gray-800">
                 Password
               </label>
               <div className="relative">
-                <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors ${focusedField === 'password' ? 'text-blue-600' : 'text-gray-400'}`}>
-                  <Lock className="h-5 w-5" />
+                <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors ${focusedField === 'password' ? 'text-blue-600' : 'text-gray-500'}`}>
+                  <Lock className="h-6 w-6" />
                 </div>
                 <input
                   id="password"
@@ -147,7 +150,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   onFocus={() => setFocusedField('password')}
                   onBlur={() => setFocusedField(null)}
-                  className="w-full pl-10 pr-12 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur"
+                  className="w-full pl-14 pr-14 py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white text-base font-medium placeholder-gray-500"
                   placeholder="••••••••"
                   required
                   autoComplete="current-password"
@@ -155,10 +158,10 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-600 hover:text-gray-800 transition-colors"
                   tabIndex={-1}
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? <EyeOff className="h-6 w-6" /> : <Eye className="h-6 w-6" />}
                 </button>
               </div>
             </div>
@@ -169,13 +172,13 @@ export default function LoginPage() {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                  className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
                 />
-                <span className="ml-2 text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
+                <span className="ml-3 text-base text-gray-700 group-hover:text-gray-900 transition-colors">
                   Remember me
                 </span>
               </label>
-              <a href="#" className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">
+              <a href="#" className="text-base font-semibold text-blue-600 hover:text-blue-700 transition-colors">
                 Forgot password?
               </a>
             </div>
@@ -183,16 +186,16 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3.5 px-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-4 px-4 rounded-xl font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-3 text-lg"
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-6 h-6 animate-spin" />
                   <span>Signing in...</span>
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="w-5 h-5" />
+                  <CheckCircle2 className="w-6 h-6" />
                   <span>Sign In</span>
                 </>
               )}
@@ -200,30 +203,30 @@ export default function LoginPage() {
           </form>
 
           {/* Divider */}
-          <div className="mt-6 mb-6 flex items-center">
-            <div className="flex-1 border-t border-gray-200"></div>
-            <span className="px-4 text-xs text-gray-500 font-medium">SECURE LOGIN</span>
-            <div className="flex-1 border-t border-gray-200"></div>
+          <div className="mt-8 mb-8 flex items-center">
+            <div className="flex-1 border-t-2 border-gray-200"></div>
+            <span className="px-4 text-sm text-gray-600 font-bold">SECURE LOGIN</span>
+            <div className="flex-1 border-t-2 border-gray-200"></div>
           </div>
 
           {/* Security Info */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
-            <p className="text-xs text-gray-600 text-center flex items-center justify-center gap-2">
-              <Lock className="w-3.5 h-3.5 text-blue-600" />
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-200">
+            <p className="text-base text-gray-700 text-center flex items-center justify-center gap-2 font-semibold">
+              <Lock className="w-5 h-5 text-blue-600" />
               Protected by enterprise-grade encryption
             </p>
           </div>
 
           {/* System Status */}
-          <div className="bg-green-50 rounded-xl p-3 border border-green-100 mt-4">
-            <p className="text-xs text-gray-600 text-center flex items-center justify-center gap-2">
-              <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+          <div className="bg-green-50 rounded-xl p-5 border-2 border-green-200 mt-4">
+            <p className="text-base text-gray-700 text-center flex items-center justify-center gap-2 font-semibold">
+              <CheckCircle2 className="w-5 h-5 text-green-600" />
               All systems operational
             </p>
           </div>
 
           {/* Legal Links */}
-          <div className="mt-6 flex items-center justify-center gap-4 text-xs text-gray-500">
+          <div className="mt-8 flex items-center justify-center gap-6 text-base text-gray-600 font-semibold">
             <Link href="/PRIVACY_POLICY.md" className="hover:text-blue-600 transition-colors">
               Privacy Policy
             </Link>
@@ -235,8 +238,8 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-sm text-gray-600 mt-6 flex items-center justify-center gap-2">
-          <Shield className="w-4 h-4" />
+        <p className="text-center text-base text-gray-700 mt-8 flex items-center justify-center gap-2 font-semibold">
+          <Shield className="w-5 h-5" />
           <span>© 2026 Kelly OS. Enterprise ERP Solution.</span>
         </p>
       </div>
