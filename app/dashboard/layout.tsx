@@ -36,6 +36,7 @@ import {
   RotateCcw,
   Activity,
   MessageSquare,
+  Settings,
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -100,7 +101,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Upload Statement', href: '/dashboard/upload', icon: Upload },
     { name: 'Reconcile', href: '/dashboard/reconcile', icon: GitCompare },
     { name: 'Customers', href: '/dashboard/customers', icon: Users },
-    { name: 'SMS Management', href: '/dashboard/sms', icon: MessageSquare },
+    {
+      name: 'Messaging',
+      icon: MessageSquare,
+      dropdown: true,
+      items: [
+        { name: 'Send Messages', href: '/dashboard/sms', icon: MessageSquare },
+        { name: 'SMS Test & Config', href: '/dashboard/sms-test', icon: Settings },
+      ],
+    },
     {
       name: 'Invoices',
       icon: FileText,
