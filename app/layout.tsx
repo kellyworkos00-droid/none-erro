@@ -9,7 +9,6 @@ import { PWARegister } from './components/PWARegister';
 import { ThemeProvider } from './components/ThemeProvider';
 import { CommandPalette } from './components/CommandPalette';
 import { ScrollToTop } from './components/ScrollToTop';
-import { Footer } from './components/Footer';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -62,7 +61,6 @@ export default function RootLayout({
             <Header />
             <CommandPalette />
             {children}
-            <Footer />
             <ScrollToTop />
             <Toaster
               position="top-right"
