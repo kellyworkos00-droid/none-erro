@@ -282,7 +282,7 @@ async function sendViaTextSms(options: SendSmsOptions): Promise<SmsResult> {
  */
 async function sendViaAppSms(options: SendSmsOptions): Promise<SmsResult> {
   const apiKey = process.env.APPSMS_API_KEY;
-  const apiUrl = process.env.APPSMS_API_URL || 'https://api.textsms.co.ke';
+  const apiUrl = process.env.APPSMS_API_URL || 'https://api.textsms.co.ke/api/v1/send';
   const senderId = process.env.APPSMS_SENDER_ID || 'KELLY_OS';
 
   if (!apiKey) {
@@ -291,6 +291,13 @@ async function sendViaAppSms(options: SendSmsOptions): Promise<SmsResult> {
 
   try {
     const formattedPhone = formatPhoneNumber(options.to);
+    
+    console.log('[AppSMS] Sending SMS:', {
+      url: apiUrl,
+      phone: formattedPhone,
+      messageLength: options.message.length,
+      senderId,
+    });
     
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -306,20 +313,34 @@ async function sendViaAppSms(options: SendSmsOptions): Promise<SmsResult> {
       }),
     });
 
+    const responseText = await response.text();
+    console.log('[AppSMS] Response status:', response.status);
+    console.log('[AppSMS] Response body:', responseText);
+
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`AppSMS API error: ${response.status} - ${errorText}`);
+      console.error('[AppSMS] API error:', response.status, responseText);
+      throw new Error(`AppSMS API error: ${response.status} - ${responseText}`);
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('[AppSMS] Failed to parse response:', responseText);
+      throw new Error(`Invalid JSON response from AppSMS: ${responseText}`);
+    }
+    
+    console.log('[AppSMS] Parsed response:', data);
     
     if (data.success || data.status === 'success') {
+      console.log('[AppSMS] SMS sent successfully:', data.message_id || data.id);
       return {
         success: true,
         provider: 'appsms',
         messageId: data.message_id || data.id,
       };
     } else {
+      console.error('[AppSMS] SMS sending failed:', data.message || data.error);
       return {
         success: false,
         provider: 'appsms',
@@ -327,7 +348,7 @@ async function sendViaAppSms(options: SendSmsOptions): Promise<SmsResult> {
       };
     }
   } catch (error) {
-    console.error('AppSMS API error:', error);
+    console.error('[AppSMS] Exception:', error);
     throw new ExternalApiError('AppSMS', 500, error);
   }
 }
