@@ -75,7 +75,6 @@ interface ProductPerformance {
 }
 
 const statusOptions = ['ALL', 'ACTIVE', 'OUT_OF_STOCK', 'DISCONTINUED', 'INACTIVE'];
-const stockManagedFromAdjustments = true;
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -90,7 +89,6 @@ export default function ProductsPage() {
   const [statusFilter, setStatusFilter] = useState('ACTIVE');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [sortBy, setSortBy] = useState('recent');
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   const [productMovements, setProductMovements] = useState<StockMovement[]>([]);
   const [productPerformance, setProductPerformance] = useState<ProductPerformance | null>(null);
@@ -102,7 +100,6 @@ export default function ProductsPage() {
     total: 0,
     totalPages: 1,
   });
-  const selectAllRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -193,16 +190,7 @@ export default function ProductsPage() {
     fetchProducts();
   }, [fetchProducts]);
 
-  useEffect(() => {
-    setSelectedIds([]);
-  }, [products]);
 
-  useEffect(() => {
-    if (selectAllRef.current) {
-      selectAllRef.current.indeterminate =
-        selectedIds.length > 0 && selectedIds.length < filteredProducts.length;
-    }
-  }, [selectedIds, filteredProducts.length]);
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-KE', {
@@ -248,22 +236,7 @@ export default function ProductsPage() {
     };
   }, [filteredProducts]);
 
-  const allSelected =
-    filteredProducts.length > 0 && selectedIds.length === filteredProducts.length;
 
-  const handleToggleSelectAll = () => {
-    if (allSelected) {
-      setSelectedIds([]);
-      return;
-    }
-    setSelectedIds(filteredProducts.map((product) => product.id));
-  };
-
-  const handleToggleSelect = (productId: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId]
-    );
-  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -435,64 +408,7 @@ export default function ProductsPage() {
     }
   };
 
-  const handleBulkStatusUpdate = async (status: string) => {
-    if (selectedIds.length === 0) return;
 
-    try {
-      const token = localStorage.getItem('token');
-      const responses = await Promise.all(
-        selectedIds.map((id) =>
-          fetch(`/api/products/${id}`, {
-            method: 'PATCH',
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ status }),
-          })
-        )
-      );
-
-      const failed = responses.find((response) => !response.ok);
-      if (failed) {
-        throw new Error('Failed to update one or more products');
-      }
-
-      toast.success('Selected products updated successfully');
-      fetchProducts();
-    } catch (error) {
-      console.error('Error updating products:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to update selected products');
-    }
-  };
-
-  const handleBulkDelete = async () => {
-    if (selectedIds.length === 0) return;
-    if (!confirm(`Delete ${selectedIds.length} selected products?`)) return;
-
-    try {
-      const token = localStorage.getItem('token');
-      const responses = await Promise.all(
-        selectedIds.map((id) =>
-          fetch(`/api/products/${id}`, {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${token}` },
-          })
-        )
-      );
-
-      const failed = responses.find((response) => !response.ok);
-      if (failed) {
-        throw new Error('Failed to delete one or more products');
-      }
-
-      toast.success('Selected products deleted successfully');
-      fetchProducts();
-    } catch (error) {
-      console.error('Error deleting products:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to delete selected products');
-    }
-  };
 
   const resetForm = () => {
     setFormData({
@@ -936,46 +852,6 @@ export default function ProductsPage() {
                 Showing {filteredProducts.length} of {pagination.total} products
               </span>
             </div>
-            {stockManagedFromAdjustments ? (
-              <div className="text-sm text-gray-600">
-                Stock changes are managed in{' '}
-                <Link href="/dashboard/stock-adjustments" className="text-primary-700 hover:text-primary-900 font-medium">
-                  Stock Adjustments
-                </Link>
-                .
-              </div>
-            ) : (
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  onClick={() => handleBulkStatusUpdate('ACTIVE')}
-                  disabled={selectedIds.length === 0}
-                  className="btn-secondary disabled:opacity-50"
-                >
-                  Mark Active
-                </button>
-                <button
-                  onClick={() => handleBulkStatusUpdate('OUT_OF_STOCK')}
-                  disabled={selectedIds.length === 0}
-                  className="btn-secondary disabled:opacity-50"
-                >
-                  Mark Out of Stock
-                </button>
-                <button
-                  onClick={() => handleBulkStatusUpdate('DISCONTINUED')}
-                  disabled={selectedIds.length === 0}
-                  className="btn-secondary disabled:opacity-50"
-                >
-                  Discontinue
-                </button>
-                <button
-                  onClick={handleBulkDelete}
-                  disabled={selectedIds.length === 0}
-                  className="btn-danger disabled:opacity-50"
-                >
-                  Delete
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -1177,183 +1053,190 @@ export default function ProductsPage() {
         </div>
       )}
 
-      <div className="card overflow-hidden">
-        <div className="w-full">
-          <table className="table w-full">
-            <thead>
-              <tr>
-                {!stockManagedFromAdjustments && (
-                  <th className="w-10">
-                    <input
-                      ref={selectAllRef}
-                      type="checkbox"
-                      checked={allSelected}
-                      onChange={handleToggleSelectAll}
-                    />
-                  </th>
-                )}
-                <th>Product</th>
-                <th className="hidden lg:table-cell">Category</th>
-                <th>Stock</th>
-                <th className="hidden md:table-cell">Reorder</th>
-                <th>Price</th>
-                <th className="hidden xl:table-cell">Cost</th>
-                <th className="hidden xl:table-cell">Value</th>
-                <th className="hidden sm:table-cell">Status</th>
-                <th className="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+      <div className="space-y-4">
+        {/* Products Grid */}
+        <div>
+          {filteredProducts.length === 0 ? (
+            <div className="w-full bg-white rounded-lg border border-gray-200 p-12 text-center">
+              <Package size={48} className="mx-auto text-gray-400 mb-4" />
+              <p className="text-lg font-semibold text-gray-900">No products found</p>
+              <p className="text-sm text-gray-500 mt-1">for the current filters.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredProducts.map((product) => {
                 const stock = getStockStatus(product);
                 return (
-                  <tr key={product.id}>
-                    {!stockManagedFromAdjustments && (
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.includes(product.id)}
-                          onChange={() => handleToggleSelect(product.id)}
+                  <div
+                    key={product.id}
+                    className="bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all overflow-hidden flex flex-col"
+                  >
+                    {/* Product Image */}
+                    <div className="relative w-full aspect-square bg-gray-100 overflow-hidden">
+                      {product.imageUrl ? (
+                        <Image
+                          src={product.imageUrl}
+                          alt={product.name}
+                          fill
+                          className="object-cover hover:scale-105 transition-transform"
                         />
-                      </td>
-                    )}
-                    <td>
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden bg-gray-50 border border-gray-200 flex-shrink-0">
-                          {product.imageUrl ? (
-                            <Image
-                              src={product.imageUrl}
-                              alt={product.name}
-                              fill
-                              className="object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-full items-center justify-center text-xs text-gray-400">
-                              No image
-                            </div>
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate">{product.name}</p>
-                          <p className="text-xs text-gray-500 truncate">{product.sku}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="hidden lg:table-cell text-sm text-gray-600">{product.category || '-'}</td>
-                    <td>
-                      <p className="text-xs sm:text-sm font-medium text-gray-900">
-                        {product.quantity} <span className="text-gray-500">{product.unit}</span>
-                      </p>
-                      <span className={`badge text-xs ${stock.badge}`}>{stock.label}</span>
-                    </td>
-                    <td className="hidden md:table-cell text-sm text-gray-600">{product.reorderLevel}</td>
-                    <td className="text-xs sm:text-sm font-semibold text-gray-900">
-                      {formatCurrency(product.price)}
-                    </td>
-                    <td className="hidden xl:table-cell text-sm text-gray-600">
-                      {product.cost !== null ? formatCurrency(product.cost) : '-'}
-                    </td>
-                    <td className="hidden xl:table-cell text-sm font-semibold text-gray-900">
-                      {formatCurrency(getInventoryValue(product))}
-                    </td>
-                    <td className="hidden sm:table-cell">
-                      <span
-                        className={`badge ${
-                          product.status === 'ACTIVE'
-                            ? 'badge-success'
-                            : product.status === 'OUT_OF_STOCK'
-                            ? 'badge-warning'
-                            : product.status === 'DISCONTINUED'
-                            ? 'badge-danger'
-                            : 'badge-gray'
-                        }`}
-                      >
-                        {product.status.replace(/_/g, ' ')}
-                      </span>
-                    </td>
-                    <td className="text-right">
-                      {stockManagedFromAdjustments ? (
-                        <div className="flex justify-end gap-1 sm:gap-2">
-                          <button
-                            onClick={() => handleViewProduct(product)}
-                            className="btn-secondary flex items-center gap-1 text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-2"
-                          >
-                            <Eye size={14} />
-                            <span className="hidden sm:inline">View</span>
-                          </button>
-                          <Link href="/dashboard/stock-adjustments" className="btn-secondary inline-flex items-center gap-1 text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-2">
-                            <Plus size={14} />
-                            <span className="hidden sm:inline">Adjust Stock</span>
-                            <span className="sm:hidden">Adjust</span>
-                          </Link>
-                        </div>
                       ) : (
-                        <div className="flex justify-end gap-1 sm:gap-2">
-                          <button
-                            onClick={() => handleViewProduct(product)}
-                            className="btn-secondary flex items-center gap-1 text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-2"
-                          >
-                            <Eye size={14} />
-                            <span className="hidden sm:inline">View</span>
-                          </button>
-                          <button
-                            onClick={() => handleEdit(product)}
-                            className="btn-secondary flex items-center gap-1 text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-2"
-                          >
-                            <Edit2 size={14} />
-                            <span className="hidden sm:inline">Edit</span>
-                          </button>
-                          <button
-                            onClick={() => handleDelete(product)}
-                            className="btn-danger flex items-center gap-1 text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-2"
-                          >
-                            <Trash2 size={14} />
-                            <span className="hidden sm:inline">Delete</span>
-                          </button>
+                        <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-100 to-gray-200">
+                          <Package size={48} className="text-gray-400" />
                         </div>
                       )}
-                    </td>
-                  </tr>
+                      {/* Stock Badge */}
+                      <div className="absolute top-2 right-2">
+                        <span
+                          className={`badge text-xs font-semibold ${stock.badge}`}
+                        >
+                          {stock.label}
+                        </span>
+                      </div>
+                      {/* Status Badge */}
+                      <div className="absolute top-2 left-2">
+                        <span
+                          className={`badge text-xs font-semibold ${
+                            product.status === 'ACTIVE'
+                              ? 'badge-success'
+                              : product.status === 'OUT_OF_STOCK'
+                              ? 'badge-warning'
+                              : 'badge-gray'
+                          }`}
+                        >
+                          {product.status.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Product Info */}
+                    <div className="flex flex-col flex-1 p-4">
+                      {/* Name & SKU */}
+                      <div className="mb-3">
+                        <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm">
+                          {product.name}
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-1">SKU: {product.sku}</p>
+                      </div>
+
+                      {/* Category */}
+                      {product.category && (
+                        <p className="text-xs text-gray-600 mb-3 line-clamp-1">
+                          📁 {product.category}
+                        </p>
+                      )}
+
+                      {/* Pricing Section */}
+                      <div className="grid grid-cols-2 gap-2 mb-3 py-3 border-t border-b border-gray-100">
+                        <div>
+                          <p className="text-xs text-gray-500">Price</p>
+                          <p className="font-bold text-blue-600 text-sm">
+                            {formatCurrency(product.price)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Cost</p>
+                          <p className="font-bold text-purple-600 text-sm">
+                            {product.cost ? formatCurrency(product.cost) : '—'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Stock Info */}
+                      <div className="grid grid-cols-2 gap-2 mb-4">
+                        <div className="bg-green-50 rounded p-2">
+                          <p className="text-xs text-gray-600">Stock</p>
+                          <p className="font-bold text-green-700 text-sm">
+                            {product.quantity}
+                            <span className="text-xs font-normal ml-1">
+                              {product.unit}
+                            </span>
+                          </p>
+                        </div>
+                        <div className="bg-orange-50 rounded p-2">
+                          <p className="text-xs text-gray-600">Reorder</p>
+                          <p className="font-bold text-orange-700 text-sm">
+                            {product.reorderLevel}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Inventory Value */}
+                      <div className="mb-4 p-2 bg-gray-50 rounded-lg">
+                        <p className="text-xs text-gray-600">Inventory Value</p>
+                        <p className="font-bold text-gray-900">
+                          {formatCurrency(getInventoryValue(product))}
+                        </p>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2 mt-auto">
+                        <button
+                          onClick={() => handleViewProduct(product)}
+                          className="flex-1 flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2 px-2 rounded-lg transition"
+                          title="View Details"
+                        >
+                          <Eye size={14} />
+                          <span className="hidden sm:inline">View</span>
+                        </button>
+                        <button
+                          onClick={() => handleEdit(product)}
+                          className="flex-1 flex items-center justify-center gap-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-semibold py-2 px-2 rounded-lg transition"
+                          title="Edit Product"
+                        >
+                          <Edit2 size={14} />
+                          <span className="hidden sm:inline">Edit</span>
+                        </button>
+                        <button
+                          onClick={() => handleDelete(product)}
+                          className="flex-1 flex items-center justify-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold py-2 px-2 rounded-lg transition"
+                          title="Delete Product"
+                        >
+                          <Trash2 size={14} />
+                          <span className="hidden sm:inline">Delete</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
-              {filteredProducts.length === 0 && (
-                <tr>
-                  <td colSpan={10} className="text-center text-sm text-gray-500 py-10">
-                    No products found for the current filters.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+            </div>
+          )}
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-6 py-4">
-          <p className="text-sm text-gray-500">
-            Page {pagination.page} of {pagination.totalPages}
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              className="btn-secondary"
-              disabled={pagination.page <= 1}
-              onClick={() =>
-                setPagination((prev) => ({ ...prev, page: Math.max(1, prev.page - 1) }))
-              }
-            >
-              Previous
-            </button>
-            <button
-              className="btn-secondary"
-              disabled={pagination.page >= pagination.totalPages}
-              onClick={() =>
-                setPagination((prev) => ({
-                  ...prev,
-                  page: Math.min(prev.totalPages, prev.page + 1),
-                }))
-              }
-            >
-              Next
-            </button>
+
+        {/* Pagination */}
+        {filteredProducts.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white rounded-lg border border-gray-200 p-4">
+            <p className="text-sm text-gray-600 font-medium">
+              Page <span className="font-bold">{pagination.page}</span> of{' '}
+              <span className="font-bold">{pagination.totalPages}</span> ({' '}
+              <span className="font-bold">{pagination.total}</span> total {filteredProducts.length === 1 ? 'product' : 'products'} )
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                className="btn-secondary px-4 py-2"
+                disabled={pagination.page <= 1}
+                onClick={() =>
+                  setPagination((prev) => ({ ...prev, page: Math.max(1, prev.page - 1) }))
+                }
+              >
+                ← Previous
+              </button>
+              <button
+                className="btn-secondary px-4 py-2"
+                disabled={pagination.page >= pagination.totalPages}
+                onClick={() =>
+                  setPagination((prev) => ({
+                    ...prev,
+                    page: Math.min(prev.totalPages, prev.page + 1),
+                  }))
+                }
+              >
+                Next →
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Product Detail Modal */}
