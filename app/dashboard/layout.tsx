@@ -44,7 +44,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [user, setUser] = useState<{
     firstName?: string;
     lastName?: string;
-    role: string;
+    role?: string;
   } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [soundMuted, setSoundMuted] = useState(false);
@@ -59,7 +59,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return;
     }
 
-    setUser(JSON.parse(userData) as { firstName?: string; lastName?: string; role: string });
+    setUser(JSON.parse(userData) as { firstName?: string; lastName?: string; role?: string });
   }, [router]);
 
   useEffect(() => {
@@ -291,7 +291,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <p className="text-sm font-medium text-gray-900">
                   {user.firstName} {user.lastName}
                 </p>
-                <p className="text-xs text-gray-500">{user.role.replace('_', ' ')}</p>
+                <p className="text-xs text-gray-500">{user.role?.replace('_', ' ') || 'User'}</p>
               </div>
             </div>
             <button
