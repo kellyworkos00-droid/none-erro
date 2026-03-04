@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySmsConfiguration, sendSms } from '@/lib/sms-service';
+import { requireAuth } from '@/lib/authorization';
 
 /**
  * GET /api/sms/test
  * Test and verify SMS configuration
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Require authentication
+  await requireAuth(request);
   const config = verifySmsConfiguration();
   
   return NextResponse.json({
@@ -37,6 +40,9 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Require authentication
+    await requireAuth(request);
+    
     const body = await request.json();
     const { phoneNumber, message } = body;
 

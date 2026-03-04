@@ -39,7 +39,7 @@ const sendToGroupSchema = z.object({
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = await requirePermission(request, 'customer.manage');
+    const user = await requirePermission(request, 'customer.view');
     const body = await request.json();
 
     // Determine which type of message to send
