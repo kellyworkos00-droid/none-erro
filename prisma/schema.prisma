@@ -57,6 +57,10 @@ model User {
   notifications        Notification[]
   notificationPreference NotificationPreference?
   reportTemplates      ReportTemplate[]
+  journalEntries       JournalEntry[]
+  budgets              Budget[]
+  budgetReviews        BudgetReview[]
+  cashFlowForecasts    CashFlowForecast[]
 
   @@map("users")
 }
@@ -1746,6 +1750,393 @@ model WhatsAppCatalog {
   @@index([whatsappCatalogId])
   @@index([isSynced])
   @@map("whatsapp_catalog")
+}
+
+// ============================================================================
+// ADVANCED FINANCIAL MANAGEMENT MODULE
+// ============================================================================
+
+// ============================================================================
+// CHART OF ACCOUNTS (Enhanced Accounting)
+// ============================================================================
+
+model ChartOfAccount {
+  id             String   @id @default(cuid())
+  organizationId String   @default("default")
+  accountNumber  String   @unique
+  accountName    String
+  accountType    String   // ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE
+  subType        String?  // Current Asset, Fixed Asset, Current Liability, etc.
+  description    String?
+  
+  // Account Properties
+  isActive       Boolean  @default(true)
+  parentAccountId String?
+  parentAccount  ChartOfAccount? @relation("ParentChild", fields: [parentAccountId], references: [id], onDelete: SetNull)
+  childAccounts  ChartOfAccount[] @relation("ParentChild")
+  
+  // Balance Information (Cached for performance)
+  debitBalance   Float    @default(0)
+  creditBalance  Float    @default(0)
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  // Relationships
+  journalEntryLines JournalEntryLine[]
+  ledgerEntries     GeneralLedgerEntry[]
+  budgetLines       BudgetLine[]
+  
+  @@index([accountNumber])
+  @@index([accountType])
+  @@index([organizationId])
+  @@map("chart_of_accounts")
+}
+
+// ============================================================================
+// JOURNAL ENTRIES & GENERAL LEDGER
+// ============================================================================
+
+model JournalEntry {
+  id             String   @id @default(cuid())
+  organizationId String   @default("default")
+  entryNumber    String   @unique
+  entryDate      DateTime
+  description    String
+  referenceType  String?  // INVOICE, PO, EXPENSE, MANUAL
+  referenceId    String?  // ID of the reference document
+  
+  // Status & Approval
+  status         String   @default("DRAFT") // DRAFT, POSTED, REVERSED
+  postedBy       String?
+  postedDate     DateTime?
+  reversedBy     String?
+  reversedDate   DateTime?
+  reversalReason String?
+  
+  totalDebit     Float    @default(0)
+  totalCredit    Float    @default(0)
+  notes          String?
+  
+  createdBy      String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  // Relationships
+  createdByUser  User       @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  lines          JournalEntryLine[]
+  ledgerEntries  GeneralLedgerEntry[]
+  
+  @@index([entryNumber])
+  @@index([entryDate])
+  @@index([status])
+  @@index([referenceType])
+  @@index([organizationId])
+  @@map("journal_entries")
+}
+
+model JournalEntryLine {
+  id             String   @id @default(cuid())
+  journalEntryId String
+  accountId      String
+  lineNumber     Int
+  
+  description    String?
+  debitAmount    Float    @default(0)
+  creditAmount   Float    @default(0)
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  // Relationships
+  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  account        ChartOfAccount @relation(fields: [accountId], references: [id])
+  
+  @@index([journalEntryId])
+  @@index([accountId])
+  @@map("journal_entry_lines")
+}
+
+model GeneralLedgerEntry {
+  id             String   @id @default(cuid())
+  organizationId String   @default("default")
+  accountId      String
+  journalEntryId String?
+  
+  entryDate      DateTime
+  description    String
+  referenceType  String?  // JOURNAL, INVOICE, PAYMENT, etc.
+  referenceId    String?
+  
+  debitAmount    Float    @default(0)
+  creditAmount   Float    @default(0)
+  balance        Float    @default(0)  // Running balance
+  
+  createdAt      DateTime @default(now())
+  
+  // Relationships
+  account        ChartOfAccount @relation(fields: [accountId], references: [id])
+  journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id], onDelete: SetNull)
+  
+  @@index([accountId])
+  @@index([entryDate])
+  @@index([organizationId])
+  @@index([referenceId])
+  @@map("general_ledger_entries")
+}
+
+// ============================================================================
+// BANK ACCOUNT MANAGEMENT
+// ============================================================================
+
+model BankAccount {
+  id             String   @id @default(cuid())
+  organizationId String   @default("default")
+  bankName       String
+  accountNumber  String
+  accountHolder  String
+  accountType    String   // CHECKING, SAVINGS, BUSINESS
+  currency       String   @default("KES")
+  
+  // Balances
+  currentBalance Float    @default(0)
+  reconciledBalance Float @default(0)
+  
+  // Account Details
+  swiftCode      String?
+  ibanCode       String?
+  routingNumber  String?
+  
+  // Status
+  isActive       Boolean  @default(true)
+  isPrimary      Boolean  @default(false)
+  
+  // Reconciliation
+  lastReconciledDate DateTime?
+  nextReconciledDate DateTime?
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  // Relationships
+  bankTransactions BankAccountTransaction[]
+  reconciliations  BankReconciliation[]
+  
+  @@unique([organizationId, accountNumber])
+  @@index([bankName])
+  @@index([isActive])
+  @@map("bank_accounts")
+}
+
+model BankAccountTransaction {
+  id             String   @id @default(cuid())
+  bankAccountId  String
+  transactionDate DateTime
+  description    String
+  amount         Float
+  transactionType String // DEPOSIT, WITHDRAWAL, TRANSFER, FEE
+  balance        Float
+  referenceNumber String?
+  postedDate     DateTime?
+  reconciles     Boolean  @default(false)
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  // Relationships
+  bankAccount    BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  
+  @@index([bankAccountId])
+  @@index([transactionDate])
+  @@map("bank_account_transactions")
+}
+
+model BankReconciliation {
+  id             String   @id @default(cuid())
+  bankAccountId  String
+  reconciliationDate DateTime
+  beginningBalance Float
+  endingBalance  Float
+  reconciledAmount Float
+  outstandingAmount Float
+  
+  status         String   @default("DRAFT") // DRAFT, COMPLETE, DISCREPANCIES
+  notes          String?
+  reconciliationRatio Float? // % of transactions reconciled
+  
+  createdBy      String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  // Relationships
+  bankAccount    BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  
+  @@index([bankAccountId])
+  @@index([reconciliationDate])
+  @@map("bank_reconciliations")
+}
+
+// ============================================================================
+// CASH FLOW FORECASTING
+// ============================================================================
+
+model CashFlowForecast {
+  id             String   @id @default(cuid())
+  organizationId String   @default("default")
+  forecastName   String
+  forecastPeriod String   // MONTHLY, QUARTERLY, YEARLY
+  startDate      DateTime
+  endDate        DateTime
+  
+  // Forecast Type
+  forecastType   String   @default("REVENUE") // REVENUE, EXPENSE, BOTH
+  
+  // Status
+  status         String   @default("DRAFT") // DRAFT, APPROVED, ARCHIVED
+  approvedBy     String?
+  approvedDate   DateTime?
+  
+  createdBy      String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  // Relationships
+  forecasts      CashFlowProjection[]
+  createdByUser  User       @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  
+  @@index([organizationId])
+  @@index([status])
+  @@map("cash_flow_forecasts")
+}
+
+model CashFlowProjection {
+  id                String   @id @default(cuid())
+  cashFlowForecastId String
+  projectionMonth   DateTime
+  
+  // Cash Inflows
+  projectedRevenue  Float    @default(0)
+  projectedCollections Float @default(0)
+  otherInflows      Float    @default(0)
+  totalInflows      Float    @default(0)
+  
+  // Cash Outflows
+  projectedExpenses Float    @default(0)
+  projectedPayments Float    @default(0)
+  taxPayments       Float    @default(0)
+  loanRepayments    Float    @default(0)
+  capitalExpenditure Float   @default(0)
+  otherOutflows     Float    @default(0)
+  totalOutflows     Float    @default(0)
+  
+  // Net Position
+  netCashFlow       Float    @default(0)
+  projectedBalance  Float    @default(0)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relationships
+  forecast          CashFlowForecast @relation(fields: [cashFlowForecastId], references: [id], onDelete: Cascade)
+  
+  @@index([cashFlowForecastId])
+  @@index([projectionMonth])
+  @@map("cash_flow_projections")
+}
+
+// ============================================================================
+// BUDGET MANAGEMENT
+// ============================================================================
+
+model Budget {
+  id             String   @id @default(cuid())
+  organizationId String   @default("default")
+  budgetName     String
+  fiscalYear     Int
+  budgetType     String   // OPERATING, CAPITAL, CASH
+  
+  // Period
+  startDate      DateTime
+  endDate        DateTime
+  
+  // Financial Summary (Calculated)
+  totalBudgetedAmount Float @default(0)
+  totalActualAmount   Float @default(0)
+  variance            Float @default(0)
+  variancePercentage  Float @default(0)
+  
+  // Status
+  status         String   @default("DRAFT") // DRAFT, APPROVED, ACTIVE, ARCHIVED
+  approvedBy     String?
+  approvedDate   DateTime?
+  
+  createdBy      String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  // Relationships
+  budgetLines    BudgetLine[]
+  budgetReviews  BudgetReview[]
+  createdByUser  User       @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  
+  @@unique([organizationId, fiscalYear, budgetType])
+  @@index([organizationId])
+  @@index([status])
+  @@map("budgets")
+}
+
+model BudgetLine {
+  id             String   @id @default(cuid())
+  budgetId       String
+  accountId      String
+  
+  // Budget Details
+  budgetAmount   Float
+  actualAmount   Float    @default(0)
+  variance       Float    @default(0)
+  variancePercentage Float @default(0)
+  
+  // Properties
+  notes          String?
+  isControlLine  Boolean  @default(false) // Can't be exceeded
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  // Relationships
+  budget         Budget     @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  account        ChartOfAccount @relation(fields: [accountId], references: [id])
+  
+  @@unique([budgetId, accountId])
+  @@index([budgetId])
+  @@index([accountId])
+  @@map("budget_lines")
+}
+
+model BudgetReview {
+  id             String   @id @default(cuid())
+  budgetId       String
+  reviewDate     DateTime
+  reviewPeriod   String   // MONTHLY, QUARTERLY, YEARLY
+  
+  // Performance Metrics
+  varianceAmount Float    @default(0)
+  variancePercentage Float @default(0)
+  status         String   @default("ON_TRACK") // ON_TRACK, AT_RISK, OFF_TRACK
+  notes          String?
+  recommendedActions String?
+  
+  reviewedBy     String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  // Relationships
+  budget         Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  reviewedByUser User     @relation(fields: [reviewedBy], references: [id], onDelete: Restrict)
+  
+  @@index([budgetId])
+  @@index([reviewDate])
+  @@map("budget_reviews")
 }
 
 // ============================================================================

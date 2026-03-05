@@ -102,6 +102,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Reconcile', href: '/dashboard/reconcile', icon: GitCompare },
     { name: 'Customers', href: '/dashboard/customers', icon: Users },
     {
+      name: 'Financial Management',
+      icon: DollarSign,
+      dropdown: true,
+      items: [
+        { name: 'Dashboard', href: '/dashboard/financial', icon: LayoutDashboard },
+        { name: 'Chart of Accounts', href: '/dashboard/financial/chart-of-accounts', icon: DollarSign },
+        { name: 'Journal Entries', href: '/dashboard/financial/journal-entries', icon: FileText },
+        { name: 'General Ledger', href: '/dashboard/financial/general-ledger', icon: LineChart },
+        { name: 'Bank Accounts', href: '/dashboard/financial/bank-accounts', icon: DollarSign },
+        { name: 'Budgets', href: '/dashboard/financial/budgets', icon: BarChart3 },
+        { name: 'Cash Flow', href: '/dashboard/financial/cash-flow', icon: TrendingUp },
+      ],
+    },
+    {
       name: 'Messaging',
       icon: MessageSquare,
       dropdown: true,
@@ -110,6 +124,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: 'SMS Test & Config', href: '/dashboard/sms-test', icon: Settings },
       ],
     },
+    { name: 'WhatsApp Commerce', href: '/dashboard/whatsapp-commerce', icon: MessageSquare },
     {
       name: 'Invoices',
       icon: FileText,
@@ -123,6 +138,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Sales Quotes', href: '/dashboard/sales-quotes', icon: FileSignature },
     { name: 'Sales Orders', href: '/dashboard/sales-orders', icon: ClipboardCheck },
     { name: 'POS', href: '/dashboard/pos', icon: ShoppingCart },
+    { name: 'Shop', href: '/dashboard/shop', icon: ShoppingCart },
     { name: 'Products', href: '/dashboard/products', icon: Package },
     {
       name: 'Stock Management',

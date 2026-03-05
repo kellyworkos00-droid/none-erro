@@ -18,6 +18,7 @@ interface Product {
 
 export default function ShopHomePage() {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchProducts();
