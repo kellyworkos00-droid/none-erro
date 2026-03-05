@@ -1,641 +1,423 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
-import { Users, DollarSign, Calendar, Plus, X, Check, Building2 } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Users,
+  Target,
+  BookOpen,
+  Award,
+  MapPin,
+  Plus,
+  TrendingUp,
+  Clock,
+} from "lucide-react";
 
-interface Employee {
-  id: string;
-  employeeNumber: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  position: string;
-  department?: { name: string };
-  basicSalary: number;
-  employmentStatus: string;
-  hireDate: string;
-}
-
-interface Department {
-  id: string;
-  name: string;
-  description?: string;
-  _count: { employees: number };
-}
-
-interface Leave {
-  id: string;
-  employee: { firstName: string; lastName: string; position: string };
-  leaveType: string;
-  startDate: string;
-  endDate: string;
-  daysRequested: number;
-  reason: string;
-  status: string;
-}
-
-interface PayrollSummary {
-  total: number;
-  totalGross: number;
-  totalNet: number;
-  totalDeductions: number;
-  byStatus: {
-    draft: number;
-    processed: number;
-    paid: number;
-  };
-}
-
-export default function HRPage() {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [leaves, setLeaves] = useState<Leave[]>([]);
-  const [payrollSummary, setPayrollSummary] = useState<PayrollSummary | null>(null);
+export default function HRDashboard() {
+  const [activeTab, setActiveTab] = useState("overview");
+  const [appraisals, setAppraisals] = useState([]);
+  const [trainings, setTrainings] = useState([]);
+  const [attendance, setAttendance] = useState([]);
+  const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'employees' | 'departments' | 'payroll' | 'leaves'>('employees');
-  
-  // Modals
-  const [showEmployeeModal, setShowEmployeeModal] = useState(false);
-  const [showDepartmentModal, setShowDepartmentModal] = useState(false);
-
-  // Form data
-  const [newEmployee, setNewEmployee] = useState({
-    employeeNumber: '',
-    firstName: '',
-    lastName: '',
-    email: '',
-    position: '',
-    departmentId: '',
-    basicSalary: 0,
-    employmentType: 'FULL_TIME',
-    phone: '',
-    bankName: '',
-    bankAccount: '',
+  const [metrics, setMetrics] = useState({
+    totalEmployees: 0,
+    activeGoals: 0,
+    completedTrainings: 0,
+    avgAttendance: 0,
   });
 
-  const [newDepartment, setNewDepartment] = useState({
-    name: '',
-    description: '',
-  });
+  useEffect(() => {
+    fetchHRData();
+  }, []);
 
-
-  const fetchData = useCallback(async () => {
+  const fetchHRData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const headers = { Authorization: `Bearer ${token}` };
+      const [appraisalsRes, trainingsRes, attendanceRes, goalsRes] = await Promise.all([
+        fetch("/api/hr/performance-appraisals"),
+        fetch("/api/hr/training"),
+        fetch("/api/hr/attendance-location"),
+        fetch("/api/hr/employee-goals"),
+      ]);
 
-      if (activeTab === 'employees' || activeTab === 'payroll') {
-        const empRes = await fetch('/api/hr/employees', { headers });
-        if (empRes.ok) {
-          const data = await empRes.json();
-          setEmployees(data.data.employees || []);
-        }
-      }
+      const [appraisalsData, trainingsData, attendanceData, goalsData] = await Promise.all([
+        appraisalsRes.json(),
+        trainingsRes.json(),
+        attendanceRes.json(),
+        goalsRes.json(),
+      ]);
 
-      if (activeTab === 'departments') {
-        const deptRes = await fetch('/api/hr/departments', { headers });
-        if (deptRes.ok) {
-          const data = await deptRes.json();
-          setDepartments(data.data.departments || []);
-        }
-      }
+      setAppraisals(appraisalsData || []);
+      setTrainings(trainingsData || []);
+      setAttendance(attendanceData || []);
+      setGoals(goalsData.goals || []);
 
-      if (activeTab === 'leaves') {
-        const leaveRes = await fetch('/api/hr/leaves?status=PENDING', { headers });
-        if (leaveRes.ok) {
-          const data = await leaveRes.json();
-          setLeaves(data.data.leaves || []);
-        }
-      }
+      // Calculate metrics
+      const activeGoals = goalsData.goals?.filter((g: any) => g.status === "ACTIVE").length || 0;
+      const completedTrainings = trainingsData.filter((t: any) => t.status === "COMPLETED").length || 0;
+      const avgAttendance = attendanceData.length > 0
+        ? (attendanceData.filter((a: any) => a.status === "PRESENT").length / attendanceData.length * 100).toFixed(1)
+        : 0;
 
-      if (activeTab === 'payroll') {
-        const currentDate = new Date();
-        const payrollRes = await fetch(
-          `/api/hr/payroll?month=${currentDate.getMonth() + 1}&year=${currentDate.getFullYear()}`,
-          { headers }
-        );
-        if (payrollRes.ok) {
-          const data = await payrollRes.json();
-          setPayrollSummary(data.data.summary);
-        }
-      }
+      setMetrics({
+        totalEmployees: attendanceData.length || 0,
+        activeGoals,
+        completedTrainings,
+        avgAttendance: parseFloat(avgAttendance as any),
+      });
     } catch (error) {
-      console.error('Error fetching HR data:', error);
+      console.error("Error fetching HR data:", error);
     } finally {
       setLoading(false);
     }
-  }, [activeTab]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const handleCreateEmployee = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/hr/employees', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(newEmployee),
-      });
-
-      if (res.ok) {
-        alert('Employee created successfully!');
-        setShowEmployeeModal(false);
-        fetchData();
-        // Reset form
-        setNewEmployee({
-          employeeNumber: '',
-          firstName: '',
-          lastName: '',
-          email: '',
-          position: '',
-          departmentId: '',
-          basicSalary: 0,
-          employmentType: 'FULL_TIME',
-          phone: '',
-          bankName: '',
-          bankAccount: '',
-        });
-      } else {
-        const error = await res.json();
-        alert(error.message || 'Failed to create employee');
-      }
-    } catch (error) {
-      console.error('Error creating employee:', error);
-      alert('An error occurred');
-    }
   };
 
-  const handleCreateDepartment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/hr/departments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(newDepartment),
-      });
+  const appraisalStatusData = [
+    { name: "Draft", value: appraisals.filter((a: any) => a.status === "DRAFT").length },
+    { name: "In Progress", value: appraisals.filter((a: any) => a.status === "IN_PROGRESS").length },
+    { name: "Completed", value: appraisals.filter((a: any) => a.status === "COMPLETED").length },
+  ];
 
-      if (res.ok) {
-        alert('Department created successfully!');
-        setShowDepartmentModal(false);
-        fetchData();
-        setNewDepartment({ name: '', description: '' });
-      } else {
-        const error = await res.json();
-        alert(error.message || 'Failed to create department');
-      }
-    } catch (error) {
-      console.error('Error creating department:', error);
-      alert('An error occurred');
-    }
-  };
+  const goalProgressData = [
+    { name: "0-25%", value: goals.filter((g: any) => g.progressPercent <= 25).length },
+    { name: "25-50%", value: goals.filter((g: any) => g.progressPercent > 25 && g.progressPercent <= 50).length },
+    { name: "50-75%", value: goals.filter((g: any) => g.progressPercent > 50 && g.progressPercent <= 75).length },
+    { name: "75-100%", value: goals.filter((g: any) => g.progressPercent > 75).length },
+  ];
 
-  const handleApproveLeave = async (leaveId: string, approved: boolean) => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/api/hr/leaves?id=${leaveId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          status: approved ? 'APPROVED' : 'REJECTED',
-          rejectionReason: approved ? undefined : 'Not approved',
-        }),
-      });
-
-      if (res.ok) {
-        alert(`Leave ${approved ? 'approved' : 'rejected'} successfully!`);
-        fetchData();
-      } else {
-        alert('Failed to process leave');
-      }
-    } catch (error) {
-      console.error('Error processing leave:', error);
-      alert('An error occurred');
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
+  const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444"];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-display font-bold text-gray-900">Human Resources</h1>
-        <p className="text-sm text-gray-600 mt-1">Manage employees, payroll, leaves, and departments</p>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">HR Management</h1>
+          <p className="text-gray-600">Advanced HR & Talent Management</p>
+        </div>
+        <Button className="bg-blue-600 hover:bg-blue-700">
+          <Plus className="w-4 h-4 mr-2" />
+          New
+        </Button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white/80 backdrop-blur rounded-lg shadow-sm border border-white/70 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Employees</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">{employees.length}</p>
-              <p className="text-xs text-gray-500 mt-1">
-                Active: {employees.filter(e => e.employmentStatus === 'ACTIVE').length}
-              </p>
+      {/* Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-0">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-gray-700">Total Employees</CardTitle>
+              <Users className="w-5 h-5 text-blue-600" />
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Users className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics.totalEmployees}</div>
+            <p className="text-xs text-gray-600 mt-1">Active in system</p>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white/80 backdrop-blur rounded-lg shadow-sm border border-white/70 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Departments</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">{departments.length}</p>
-              <p className="text-xs text-gray-500 mt-1">Active departments</p>
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-0">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-gray-700">Active Goals</CardTitle>
+              <Target className="w-5 h-5 text-purple-600" />
             </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <Building2 className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics.activeGoals}</div>
+            <p className="text-xs text-gray-600 mt-1">In progress</p>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white/80 backdrop-blur rounded-lg shadow-sm border border-white/70 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Pending Leaves</p>
-              <p className="text-3xl font-bold text-orange-600 mt-2">{leaves.length}</p>
-              <p className="text-xs text-gray-500 mt-1">Awaiting approval</p>
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-0">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-gray-700">Trainings Completed</CardTitle>
+              <BookOpen className="w-5 h-5 text-green-600" />
             </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-orange-600" />
-            </div>
-          </div>
-        </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics.completedTrainings}</div>
+            <p className="text-xs text-gray-600 mt-1">Employees trained</p>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white/80 backdrop-blur rounded-lg shadow-sm border border-white/70 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Monthly Payroll</p>
-              <p className="text-2xl font-bold text-gray-900 mt-2">
-                KES {(payrollSummary?.totalNet || 0).toLocaleString()}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">Current month</p>
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-0">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-gray-700">Attendance Rate</CardTitle>
+              <Award className="w-5 h-5 text-orange-600" />
             </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics.avgAttendance}%</div>
+            <p className="text-xs text-gray-600 mt-1">Average</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Tabs */}
-      <div className="bg-white/80 backdrop-blur rounded-lg shadow-sm border border-white/70">
-        <div className="border-b border-gray-200">
-          <nav className="flex -mb-px">
-            {(['employees', 'departments', 'payroll', 'leaves'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-6 py-3 text-sm font-medium border-b-2 ${
-                  activeTab === tab
-                    ? 'border-primary-600 text-primary-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        <div className="p-6">
-          {/* Employees Tab */}
-          {activeTab === 'employees' && (
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">Employee Roster</h2>
-                <button
-                  onClick={() => setShowEmployeeModal(true)}
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Employee
-                </button>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Employee #</th>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Position</th>
-                      <th>Department</th>
-                      <th>Salary</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {employees.map((emp) => (
-                      <tr key={emp.id}>
-                        <td className="text-sm font-medium">{emp.employeeNumber}</td>
-                        <td className="text-sm">{emp.firstName} {emp.lastName}</td>
-                        <td className="text-sm">{emp.email}</td>
-                        <td className="text-sm">{emp.position}</td>
-                        <td className="text-sm">{emp.department?.name || 'N/A'}</td>
-                        <td className="text-sm">KES {emp.basicSalary.toLocaleString()}</td>
-                        <td>
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            emp.employmentStatus === 'ACTIVE'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {emp.employmentStatus}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Departments Tab */}
-          {activeTab === 'departments' && (
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">Departments</h2>
-                <button
-                  onClick={() => setShowDepartmentModal(true)}
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Department
-                </button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {departments.map((dept) => (
-                  <div key={dept.id} className="border border-gray-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-gray-900">{dept.name}</h3>
-                    <p className="text-sm text-gray-600 mt-1">{dept.description || 'No description'}</p>
-                    <p className="text-sm text-gray-500 mt-2">
-                      {dept._count.employees} {dept._count.employees === 1 ? 'employee' : 'employees'}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Payroll Tab */}
-          {activeTab === 'payroll' && (
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">Payroll Overview</h2>
-              </div>
-              {payrollSummary && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div className="border border-gray-200 rounded-lg p-4">
-                    <p className="text-sm text-gray-600">Total Gross Pay</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">
-                      KES {payrollSummary.totalGross.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="border border-gray-200 rounded-lg p-4">
-                    <p className="text-sm text-gray-600">Total Deductions</p>
-                    <p className="text-2xl font-bold text-red-600 mt-1">
-                      KES {payrollSummary.totalDeductions.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="border border-gray-200 rounded-lg p-4">
-                    <p className="text-sm text-gray-600">Total Net Pay</p>
-                    <p className="text-2xl font-bold text-green-600 mt-1">
-                      KES {payrollSummary.totalNet.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              )}
-              <p className="text-gray-600">Payroll processing and history will be displayed here.</p>
-            </div>
-          )}
-
-          {/* Leaves Tab */}
-          {activeTab === 'leaves' && (
-            <div>
-              <h2 className="text-lg font-semibold mb-4">Pending Leave Requests</h2>
-              <div className="space-y-3">
-                {leaves.map((leave) => (
-                  <div key={leave.id} className="border border-gray-200 rounded-lg p-4 flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold">{leave.employee.firstName} {leave.employee.lastName}</h3>
-                      <p className="text-sm text-gray-600">{leave.employee.position}</p>
-                      <p className="text-sm text-gray-700 mt-2">
-                        <span className="font-medium">{leave.leaveType}</span> -{' '}
-                        {new Date(leave.startDate).toLocaleDateString()} to{' '}
-                        {new Date(leave.endDate).toLocaleDateString()} ({leave.daysRequested} days)
-                      </p>
-                      <p className="text-sm text-gray-600 mt-1">{leave.reason}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleApproveLeave(leave.id, true)}
-                        className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-1"
-                      >
-                        <Check className="w-4 h-4" />
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => handleApproveLeave(leave.id, false)}
-                        className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 flex items-center gap-1"
-                      >
-                        <X className="w-4 h-4" />
-                        Reject
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                {leaves.length === 0 && (
-                  <p className="text-gray-600 text-center py-8">No pending leave requests</p>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+      <div className="flex gap-4 border-b">
+        {[
+          { id: "overview", label: "Overview", icon: Award },
+          { id: "appraisals", label: "Performance", icon: TrendingUp },
+          { id: "training", label: "Training", icon: BookOpen },
+          { id: "attendance", label: "Attendance", icon: Clock },
+          { id: "goals", label: "Goals", icon: Target },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 border-b-2 transition ${
+                activeTab === tab.id
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Add Employee Modal */}
-      {showEmployeeModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Add New Employee</h2>
-              <button onClick={() => setShowEmployeeModal(false)} className="text-gray-500 hover:text-gray-700">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <form onSubmit={handleCreateEmployee} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Employee Number</label>
-                  <input
-                    type="text"
-                    required
-                    value={newEmployee.employeeNumber}
-                    onChange={(e) => setNewEmployee({ ...newEmployee, employeeNumber: e.target.value })}
-                    className="input"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    required
-                    value={newEmployee.email}
-                    onChange={(e) => setNewEmployee({ ...newEmployee, email: e.target.value })}
-                    className="input"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={newEmployee.firstName}
-                    onChange={(e) => setNewEmployee({ ...newEmployee, firstName: e.target.value })}
-                    className="input"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={newEmployee.lastName}
-                    onChange={(e) => setNewEmployee({ ...newEmployee, lastName: e.target.value })}
-                    className="input"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Position</label>
-                  <input
-                    type="text"
-                    required
-                    value={newEmployee.position}
-                    onChange={(e) => setNewEmployee({ ...newEmployee, position: e.target.value })}
-                    className="input"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Basic Salary (KES)</label>
-                  <input
-                    type="number"
-                    required
-                    value={newEmployee.basicSalary}
-                    onChange={(e) => setNewEmployee({ ...newEmployee, basicSalary: parseFloat(e.target.value) })}
-                    className="input"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                  <select
-                    value={newEmployee.departmentId}
-                    onChange={(e) => setNewEmployee({ ...newEmployee, departmentId: e.target.value })}
-                    className="input"
-                  >
-                    <option value="">Select Department</option>
-                    {departments.map((dept) => (
-                      <option key={dept.id} value={dept.id}>{dept.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Employment Type</label>
-                  <select
-                    value={newEmployee.employmentType}
-                    onChange={(e) => setNewEmployee({ ...newEmployee, employmentType: e.target.value })}
-                    className="input"
-                  >
-                    <option value="FULL_TIME">Full Time</option>
-                    <option value="PART_TIME">Part Time</option>
-                    <option value="CONTRACT">Contract</option>
-                    <option value="INTERN">Intern</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex gap-3 mt-6">
-                <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
-                  Create Employee
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowEmployeeModal(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+      {/* Overview Tab */}
+      {activeTab === "overview" && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Appraisal Status Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {appraisalStatusData.some(d => d.value > 0) ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={appraisalStatusData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, value }) => `${name}: ${value}`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {COLORS.map((color, index) => (
+                        <Cell key={`cell-${index}`} fill={color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-80 flex items-center justify-center text-gray-500">No appraisals yet</div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Goal Progress Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {goalProgressData.some(d => d.value > 0) ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={goalProgressData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="#3b82f6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-80 flex items-center justify-center text-gray-500">No goals yet</div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Performance Appraisals Tab */}
+      {activeTab === "appraisals" && (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Performance Appraisals</h2>
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="w-4 h-4 mr-2" />
+              New Appraisal
+            </Button>
+          </div>
+          <div className="space-y-3">
+            {appraisals.length > 0 ? (
+              appraisals.slice(0, 5).map((appraisal: any) => (
+                <Card key={appraisal.id}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-semibold">
+                          {appraisal.employee?.firstName} {appraisal.employee?.lastName}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {appraisal.appraisalType} - {new Date(appraisal.appraisalDate).toLocaleDateString()}
+                        </p>
+                        <div className="flex gap-4 mt-2 text-sm">
+                          <span>Self Rating: {appraisal.selfRating}/5</span>
+                          <span>Manager Rating: {appraisal.managerRating}/5</span>
+                          <span className="font-semibold">Status: {appraisal.status}</span>
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm">View Details</Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <p className="text-gray-500 text-center py-8">No appraisals found</p>
+            )}
           </div>
         </div>
       )}
 
-      {/* Add Department Modal */}
-      {showDepartmentModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Add New Department</h2>
-              <button onClick={() => setShowDepartmentModal(false)} className="text-gray-500 hover:text-gray-700">
-                <X className="w-6 h-6" />
-              </button>
+      {/* Training Tab */}
+      {activeTab === "training" && (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Training Programs</h2>
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="w-4 h-4 mr-2" />
+              New Program
+            </Button>
+          </div>
+          <div className="space-y-3">
+            {trainings.length > 0 ? (
+              trainings.slice(0, 5).map((training: any) => (
+                <Card key={training.id}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-semibold">{training.title || training.program?.title}</p>
+                        <p className="text-sm text-gray-600">{training.category}</p>
+                        <div className="flex gap-4 mt-2 text-sm">
+                          <span>Status: {training.status}</span>
+                          {training.completionPercent !== undefined && (
+                            <span>Progress: {training.completionPercent}%</span>
+                          )}
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm">View Program</Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <p className="text-gray-500 text-center py-8">No training programs found</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Attendance Tab */}
+      {activeTab === "attendance" && (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Attendance Records</h2>
+            <div className="flex gap-2">
+              <Input
+                type="date"
+                placeholder="Filter by date"
+                className="w-40"
+              />
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="w-4 h-4 mr-2" />
+                Record Attendance
+              </Button>
             </div>
-            <form onSubmit={handleCreateDepartment} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Department Name</label>
-                <input
-                  type="text"
-                  required
-                  value={newDepartment.name}
-                  onChange={(e) => setNewDepartment({ ...newDepartment, name: e.target.value })}
-                  className="input"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea
-                  value={newDepartment.description}
-                  onChange={(e) => setNewDepartment({ ...newDepartment, description: e.target.value })}
-                  className="input"
-                  rows={3}
-                />
-              </div>
-              <div className="flex gap-3 mt-6">
-                <button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
-                  Create Department
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowDepartmentModal(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+          </div>
+          <div className="space-y-3">
+            {attendance.length > 0 ? (
+              attendance.slice(0, 5).map((record: any) => (
+                <Card key={record.id}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-semibold">
+                          {record.employee?.firstName} {record.employee?.lastName}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {new Date(record.date).toLocaleDateString()}
+                        </p>
+                        <div className="flex gap-4 mt-2 text-sm flex-wrap">
+                          <span>Status: {record.status}</span>
+                          {record.checkIn && <span>Check-in: {new Date(record.checkIn).toLocaleTimeString()}</span>}
+                          {record.hoursWorked && <span>Hours: {record.hoursWorked}h</span>}
+                          {record.locationData?.checkInLocation && (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {record.locationData.checkInLocation}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm">Details</Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <p className="text-gray-500 text-center py-8">No attendance records found</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Goals Tab */}
+      {activeTab === "goals" && (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Employee Goals</h2>
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="w-4 h-4 mr-2" />
+              New Goal
+            </Button>
+          </div>
+          <div className="space-y-3">
+            {goals.length > 0 ? (
+              goals.slice(0, 5).map((goal: any) => (
+                <Card key={goal.id}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-semibold">{goal.title}</p>
+                        <p className="text-sm text-gray-600">
+                          {goal.employee?.firstName} {goal.employee?.lastName}
+                        </p>
+                        <div className="flex gap-4 mt-2 text-sm">
+                          <span>Due: {new Date(goal.dueDate).toLocaleDateString()}</span>
+                          <span>Priority: {goal.priority}</span>
+                          <span>Progress: {goal.progressPercent}%</span>
+                        </div>
+                        <div className="mt-3 bg-gray-200 rounded-full h-2 w-full">
+                          <div
+                            className="bg-blue-600 h-2 rounded-full transition-all"
+                            style={{ width: `${goal.progressPercent}%` }}
+                          />
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm">Update</Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <p className="text-gray-500 text-center py-8">No goals found</p>
+            )}
           </div>
         </div>
       )}

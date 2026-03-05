@@ -37,6 +37,10 @@ import {
   Activity,
   MessageSquare,
   Settings,
+  Award,
+  Target,
+  BookOpen,
+  Clock,
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -113,6 +117,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: 'Bank Accounts', href: '/dashboard/financial/bank-accounts', icon: DollarSign },
         { name: 'Budgets', href: '/dashboard/financial/budgets', icon: BarChart3 },
         { name: 'Cash Flow', href: '/dashboard/financial/cash-flow', icon: TrendingUp },
+      ],
+    },
+    {
+      name: 'HR Management',
+      icon: Users,
+      dropdown: true,
+      items: [
+        { name: 'Dashboard', href: '/dashboard/hr', icon: LayoutDashboard },
+        { name: 'Performance Appraisals', href: '/dashboard/hr/performance', icon: Award },
+        { name: 'Training Programs', href: '/dashboard/hr/training', icon: BookOpen },
+        { name: 'Attendance Tracking', href: '/dashboard/hr/attendance', icon: Clock },
+        { name: 'Employee Goals', href: '/dashboard/hr/goals', icon: Target },
+        { name: 'Org Chart', href: '/dashboard/hr/org-chart', icon: Building2 },
       ],
     },
     {

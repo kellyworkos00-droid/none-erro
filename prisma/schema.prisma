@@ -1294,6 +1294,13 @@ model Employee {
   payrolls        Payroll[]
   leaves          Leave[]
   attendances     Attendance[]
+  managerOf       EmployeeManager[] @relation("DirectReports")
+  managedBy       EmployeeManager[] @relation("EmployeeManagers")
+  performanceAppraisals PerformanceAppraisal[]
+  peerReviews     PeerReview[]
+  trainingEnrollments TrainingEnrollment[]
+  skills          EmployeeSkill[]
+  goals           EmployeeGoal[]
   
   @@index([employeeNumber])
   @@index([email])
@@ -1408,7 +1415,8 @@ model Attendance {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   
-  employee        Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee        Employee             @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  locationData    AttendanceLocation?
   
   @@unique([employeeId, date])
   @@index([employeeId])
@@ -2137,6 +2145,236 @@ model BudgetReview {
   @@index([budgetId])
   @@index([reviewDate])
   @@map("budget_reviews")
+}
+
+// ============================================================================
+// ADVANCED HR MODULE - Extended Models
+// ============================================================================
+
+// Enhance Employee model with manager/org chart relationships
+model EmployeeManager {
+  id              String   @id @default(cuid())
+  employeeId      String
+  managerId       String
+  startDate       DateTime @default(now())
+  endDate         DateTime?
+  
+  employee        Employee @relation("EmployeeManagers", fields: [employeeId], references: [id], onDelete: Cascade)
+  manager         Employee @relation("DirectReports", fields: [managerId], references: [id], onDelete: Cascade)
+  
+  @@unique([employeeId, managerId])
+  @@index([employeeId])
+  @@index([managerId])
+  @@map("employee_managers")
+}
+
+// Performance Appraisals - 360-degree reviews
+model PerformanceAppraisal {
+  id                String   @id @default(cuid())
+  employeeId        String
+  appraisalPeriod   String   // Q1, Q2, Q3, Q4, ANNUAL
+  appraisalYear     Int
+  
+  // Self Assessment
+  selfRating        Float?   // 1-5
+  selfComments      String?
+  
+  // Manager Assessment
+  managerRating     Float?   // 1-5
+  managerComments   String?
+  managerReviewDate DateTime?
+  
+  // Peer Reviews (360)
+  peerReviewsCount  Int      @default(0)
+  averagePeerRating Float?   // 1-5
+  
+  // Overall Metrics
+  overallRating     Float?   // Final rating
+  status            String   @default("DRAFT") // DRAFT, SELF_REVIEW, MANAGER_REVIEW, FINAL, CLOSED
+  
+  // Goal Tracking
+  goals             Json?    // Goal descriptions and achievements
+  competencies      Json?    // Core competencies assessment
+  
+  // Development Plan
+  developmentPlan   String?
+  trainingSuggestions String?
+  
+  createdDate       DateTime @default(now())
+  closedDate        DateTime?
+  
+  employee          Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  peerReviews       PeerReview[]
+  
+  @@unique([employeeId, appraisalYear, appraisalPeriod])
+  @@index([employeeId])
+  @@index([status])
+  @@map("performance_appraisals")
+}
+
+model PeerReview {
+  id               String   @id @default(cuid())
+  appraisalId      String
+  reviewerEmployeeId String
+  
+  rating           Float    // 1-5
+  feedback         String
+  submittedDate    DateTime @default(now())
+  
+  appraisal        PerformanceAppraisal @relation(fields: [appraisalId], references: [id], onDelete: Cascade)
+  reviewer         Employee @relation(fields: [reviewerEmployeeId], references: [id], onDelete: Cascade)
+  
+  @@index([appraisalId])
+  @@index([reviewerEmployeeId])
+  @@map("peer_reviews")
+}
+
+// Training Management & Learning Development
+model TrainingProgram {
+  id               String   @id @default(cuid())
+  
+  name             String
+  description      String?
+  category         String   // TECHNICAL, SOFT_SKILLS, COMPLIANCE, LEADERSHIP, OTHER
+  
+  startDate        DateTime
+  endDate          DateTime
+  
+  // Training Details
+  duration         Float    // In days/weeks
+  format           String   // ONLINE, IN_PERSON, HYBRID, SELF_PACED
+  provider         String?  // Training provider name
+  cost             Float    @default(0)
+  currency         String   @default("KES")
+  
+  // Capacity
+  maxParticipants  Int?
+  requiredRole     String?  // Restrict to specific role
+  
+  // Status
+  status           String   @default("PLANNED") // PLANNED, IN_PROGRESS, COMPLETED, CANCELLED
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  enrollments      TrainingEnrollment[]
+  
+  @@index([category])
+  @@index([status])
+  @@index([startDate])
+  @@map("training_programs")
+}
+
+model TrainingEnrollment {
+  id               String   @id @default(cuid())
+  
+  employeeId       String
+  trainingId       String
+  
+  enrollmentDate   DateTime @default(now())
+  completionDate   DateTime?
+  
+  // Performance
+  status           String   @default("ENROLLED") // ENROLLED, IN_PROGRESS, COMPLETED, DROPPED
+  score            Float?   // 0-100
+  certificate      String?  // File URL
+  feedback         String?
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  employee         Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  program          TrainingProgram @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  
+  @@unique([employeeId, trainingId])
+  @@index([employeeId])
+  @@index([trainingId])
+  @@index([status])
+  @@map("training_enrollments")
+}
+
+model EmployeeSkill {
+  id               String   @id @default(cuid())
+  
+  employeeId       String
+  skillName        String
+  proficiencyLevel String   // BEGINNER, INTERMEDIATE, ADVANCED, EXPERT
+  yearsExperience  Float?
+  
+  lastUpdated      DateTime @default(now())
+  
+  employee         Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  @@unique([employeeId, skillName])
+  @@index([employeeId])
+  @@map("employee_skills")
+}
+
+// Enhanced Attendance Tracking with Location & Biometric
+model AttendanceLocation {
+  id               String   @id @default(cuid())
+  
+  attendanceId     String   @unique
+  
+  // Check-in Location
+  checkInLocation  String?  // "Office", "Remote", "Field", etc.
+  checkInLatitude  Float?
+  checkInLongitude Float?
+  checkInDeviceId  String?  // Phone/tablet ID
+  
+  // Check-out Location
+  checkOutLocation String?
+  checkOutLatitude Float?
+  checkOutLongitude Float?
+  checkOutDeviceId String?
+  
+  // Biometric Data
+  biometricType    String?  // FINGERPRINT, FACE_ID, IRIS, NONE
+  biometricVerified Boolean @default(false)
+  
+  // Photos (for verification)
+  checkInPhoto     String?  // URL
+  checkOutPhoto    String?  // URL
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  attendance       Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  
+  @@index([attendanceId])
+  @@map("attendance_locations")
+}
+
+// Employee Relations & Reviews
+model EmployeeGoal {
+  id               String   @id @default(cuid())
+  
+  employeeId       String
+  title            String
+  description      String?
+  
+  // Timeline
+  setDate          DateTime @default(now())
+  dueDate          DateTime
+  
+  // Progress
+  status           String   @default("ACTIVE") // ACTIVE, COMPLETED, CANCELLED, ON_HOLD
+  progressPercent  Int      @default(0) // 0-100
+  
+  // Alignment
+  alignedWith      String?  // Department goal
+  priority         String?  // LOW, MEDIUM, HIGH, CRITICAL
+  
+  // Review
+  reviewNotes      String?
+  completionDate   DateTime?
+  
+  employee         Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  @@index([employeeId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("employee_goals")
 }
 
 // ============================================================================
