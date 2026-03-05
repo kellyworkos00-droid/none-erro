@@ -43,7 +43,7 @@ export default function Home() {
               Elegante
             </h1>
           </div>
-          <p className="text-xl text-gray-600 mb-2">Welcome! Choose how you'd like to continue</p>
+          <p className="text-xl text-gray-600 mb-2">Welcome! Choose how you&apos;d like to continue</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

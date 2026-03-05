@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShoppingCart, Heart, Star, Search, Package, Truck, Shield, MessageCircle, Phone, Mail, TrendingUp, Sparkles } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { ShoppingCart, Package, Truck, Shield, MessageCircle, Phone, Mail, TrendingUp, Sparkles } from 'lucide-react';
 
 interface Product {
   id: string;
@@ -18,10 +17,7 @@ interface Product {
 }
 
 export default function ShopHomePage() {
-  const [products, setProducts] = useState<Product[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchProducts();
@@ -34,7 +30,6 @@ export default function ShopHomePage() {
       if (res.ok) {
         const data = await res.json();
         const items = data.data?.items || [];
-        setProducts(items);
         setFeaturedProducts(items.slice(0, 6));
       }
     } catch (error) {

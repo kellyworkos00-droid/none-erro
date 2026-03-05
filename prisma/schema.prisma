@@ -1599,5 +1599,156 @@ model ReportTemplate {
 }
 
 // ============================================================================
+// WHATSAPP COMMERCE INTEGRATION
+// ============================================================================
+
+model WhatsAppCommerceSettings {
+  id                       String   @id @default(cuid())
+  organizationId           String
+  
+  // WhatsApp Business Configuration
+  whatsappNumber           String
+  whatsappApiKey           String?
+  whatsappWebhookUrl       String?
+  
+  // E-Commerce Store Configuration
+  storeType                String   // woocommerce, shopify, custom
+  storeUrl                 String
+  storeApiKey              String?
+  storeApiSecret           String?
+  
+  // Automation Settings
+  autoSyncEnabled          Boolean  @default(true)
+  syncInterval             Int      @default(30) // minutes
+  autoNotificationsEnabled Boolean  @default(true)
+  catalogEnabled           Boolean  @default(true)
+  
+  // Connection Status
+  isConnected              Boolean  @default(false)
+  lastSyncAt               DateTime?
+  lastSyncStatus           String   @default("pending") // success, error, pending
+  
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  
+  @@index([organizationId])
+  @@map("whatsapp_commerce_settings")
+}
+
+model WhatsAppOrder {
+  id                 String   @id @default(cuid())
+  orderNumber        String   @unique
+  
+  // Customer Information
+  customerName       String
+  customerPhone      String
+  customerEmail      String?
+  
+  // Order Details
+  products           Json     // Array of {productId, name, sku, quantity, price}
+  totalAmount        Float
+  status             String   @default("pending") // pending, confirmed, processing, shipped, delivered, cancelled
+  
+  // Delivery Information
+  deliveryAddress    String?
+  deliveryCity       String?
+  deliveryNotes      String?
+  
+  // Payment Information
+  paymentMethod      String?
+  paymentStatus      String   @default("pending") // pending, paid, failed
+  paidAmount         Float    @default(0)
+  
+  // WhatsApp Details
+  whatsappMessageId  String?
+  whatsappThreadId   String?
+  
+  // Tracking
+  orderDate          DateTime @default(now())
+  confirmedAt        DateTime?
+  shippedAt          DateTime?
+  deliveredAt        DateTime?
+  
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  @@index([customerPhone])
+  @@index([status])
+  @@index([orderDate])
+  @@index([orderNumber])
+  @@map("whatsapp_orders")
+}
+
+model WhatsAppMessage {
+  id                 String   @id @default(cuid())
+  
+  // Message Details
+  messageType        String   // order_confirmation, payment_confirmation, shipping_update, invoice_reminder, promotion
+  recipientPhone     String
+  recipientName      String?
+  
+  // Message Content
+  subject            String?
+  body               String
+  
+  // Sending Status
+  status             String   @default("pending") // pending, sent, delivered, read, failed
+  sentAt             DateTime?
+  deliveredAt        DateTime?
+  readAt             DateTime?
+  
+  // References
+  orderId            String?
+  customerId         String?
+  
+  // WhatsApp API Response
+  whatsappMessageId  String?
+  errorMessage       String?
+  
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  @@index([recipientPhone])
+  @@index([status])
+  @@index([messageType])
+  @@index([orderId])
+  @@index([createdAt])
+  @@map("whatsapp_messages")
+}
+
+model WhatsAppCatalog {
+  id                 String   @id @default(cuid())
+  productId          String   @unique
+  
+  // WhatsApp Catalog Details
+  whatsappCatalogId  String?
+  catalogName        String
+  catalogSku         String
+  catalogPrice       Float
+  catalogDescription String?
+  catalogImageUrl    String?
+  catalogCategory    String?
+  
+  // Sync Status
+  isSynced           Boolean  @default(false)
+  lastSyncedAt       DateTime?
+  syncStatus         String   @default("pending") // pending, synced, error
+  syncError          String?
+  
+  // Availability
+  isAvailable        Boolean  @default(true)
+  stockQuantity      Int      @default(0)
+  
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  @@index([productId])
+  @@index([whatsappCatalogId])
+  @@index([isSynced])
+  @@map("whatsapp_catalog")
+}
+
+// ============================================================================
 // isNotPaid: Boolean - Calculated as paidAmount < totalAmount
 // isFullyPaid: Boolean - Calculated as paidAmount >= totalAmount
+

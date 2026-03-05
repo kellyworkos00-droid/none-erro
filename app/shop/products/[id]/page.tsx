@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Package, MessageCircle, ShoppingCart, ArrowLeft, Heart, Share2, Star, Check, Truck, Shield, Clock } from 'lucide-react';
+import { Package, MessageCircle, ShoppingCart, ArrowLeft, Heart, Share2, Check, Truck, Shield, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Product {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShoppingCart, MessageCircle, Package, Search, SlidersHorizontal, Grid3x3, List, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ShoppingCart, MessageCircle, Package, Search, Grid3x3, List, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Product {
   id: string;

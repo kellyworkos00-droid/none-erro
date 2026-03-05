@@ -271,7 +271,7 @@ export default function CartPage() {
                 </button>
 
                 <p className="text-xs text-gray-600 text-center mt-4">
-                  You'll be redirected to WhatsApp to complete your order
+                  You&apos;ll be redirected to WhatsApp to complete your order
                 </p>
               </div>
             </div>
