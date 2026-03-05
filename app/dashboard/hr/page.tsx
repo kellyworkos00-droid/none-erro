@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,7 +22,6 @@ export default function HRDashboard() {
   const [trainings, setTrainings] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [goals, setGoals] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState({
     totalEmployees: 0,
     activeGoals: 0,
@@ -36,7 +35,6 @@ export default function HRDashboard() {
 
   const fetchHRData = async () => {
     try {
-      setLoading(true);
       const [appraisalsRes, trainingsRes, attendanceRes, goalsRes] = await Promise.all([
         fetch("/api/hr/performance-appraisals"),
         fetch("/api/hr/training"),
@@ -57,36 +55,34 @@ export default function HRDashboard() {
       setGoals(goalsData.goals || []);
 
       // Calculate metrics
-      const activeGoals = goalsData.goals?.filter((g: any) => g.status === "ACTIVE").length || 0;
-      const completedTrainings = trainingsData.filter((t: any) => t.status === "COMPLETED").length || 0;
+      const activeGoals = goalsData.goals?.filter((g: { status: string }) => g.status === "ACTIVE").length || 0;
+      const completedTrainings = trainingsData.filter((t: { status: string }) => t.status === "COMPLETED").length || 0;
       const avgAttendance = attendanceData.length > 0
-        ? (attendanceData.filter((a: any) => a.status === "PRESENT").length / attendanceData.length * 100).toFixed(1)
+        ? (attendanceData.filter((a: { status: string }) => a.status === "PRESENT").length / attendanceData.length * 100).toFixed(1)
         : 0;
 
       setMetrics({
         totalEmployees: attendanceData.length || 0,
         activeGoals,
         completedTrainings,
-        avgAttendance: parseFloat(avgAttendance as any),
+        avgAttendance: parseFloat(avgAttendance as string),
       });
     } catch (error) {
       console.error("Error fetching HR data:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
   const appraisalStatusData = [
-    { name: "Draft", value: appraisals.filter((a: any) => a.status === "DRAFT").length },
-    { name: "In Progress", value: appraisals.filter((a: any) => a.status === "IN_PROGRESS").length },
-    { name: "Completed", value: appraisals.filter((a: any) => a.status === "COMPLETED").length },
+    { name: "Draft", value: appraisals.filter((a: { status: string }) => a.status === "DRAFT").length },
+    { name: "In Progress", value: appraisals.filter((a: { status: string }) => a.status === "IN_PROGRESS").length },
+    { name: "Completed", value: appraisals.filter((a: { status: string }) => a.status === "COMPLETED").length },
   ];
 
   const goalProgressData = [
-    { name: "0-25%", value: goals.filter((g: any) => g.progressPercent <= 25).length },
-    { name: "25-50%", value: goals.filter((g: any) => g.progressPercent > 25 && g.progressPercent <= 50).length },
-    { name: "50-75%", value: goals.filter((g: any) => g.progressPercent > 50 && g.progressPercent <= 75).length },
-    { name: "75-100%", value: goals.filter((g: any) => g.progressPercent > 75).length },
+    { name: "0-25%", value: goals.filter((g: { progressPercent: number }) => g.progressPercent <= 25).length },
+    { name: "25-50%", value: goals.filter((g: { progressPercent: number }) => g.progressPercent > 25 && g.progressPercent <= 50).length },
+    { name: "50-75%", value: goals.filter((g: { progressPercent: number }) => g.progressPercent > 50 && g.progressPercent <= 75).length },
+    { name: "75-100%", value: goals.filter((g: { progressPercent: number }) => g.progressPercent > 75).length },
   ];
 
   const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444"];
@@ -203,7 +199,7 @@ export default function HRDashboard() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, value }: any) => `${name}: ${value}`}
+                      label={({ name, value }: { name: string; value: number }) => `${name}: ${value}`}
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
@@ -256,7 +252,7 @@ export default function HRDashboard() {
           </div>
           <div className="space-y-3">
             {appraisals.length > 0 ? (
-              appraisals.slice(0, 5).map((appraisal: any) => (
+              appraisals.slice(0, 5).map((appraisal: { id: string; employee?: { firstName: string; lastName: string }; appraisalType: string; appraisalDate: Date; selfRating: number; managerRating: number; status: string }) => (
                 <Card key={appraisal.id}>
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between">
@@ -297,7 +293,7 @@ export default function HRDashboard() {
           </div>
           <div className="space-y-3">
             {trainings.length > 0 ? (
-              trainings.slice(0, 5).map((training: any) => (
+              trainings.slice(0, 5).map((training: { id: string; title?: string; program?: { title: string }; category: string; status: string; completionPercent?: number }) => (
                 <Card key={training.id}>
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between">
@@ -342,7 +338,7 @@ export default function HRDashboard() {
           </div>
           <div className="space-y-3">
             {attendance.length > 0 ? (
-              attendance.slice(0, 5).map((record: any) => (
+              attendance.slice(0, 5).map((record: { id: string; employee?: { firstName: string; lastName: string }; date: Date; status: string; checkIn?: Date; hoursWorked?: number; locationData?: { checkInLocation: string } }) => (
                 <Card key={record.id}>
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between">
@@ -389,7 +385,7 @@ export default function HRDashboard() {
           </div>
           <div className="space-y-3">
             {goals.length > 0 ? (
-              goals.slice(0, 5).map((goal: any) => (
+              goals.slice(0, 5).map((goal: { id: string; title: string; employee?: { firstName: string; lastName: string } }) => (
                 <Card key={goal.id}>
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between">

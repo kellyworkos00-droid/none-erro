@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -27,13 +27,7 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [orderQuantity, setOrderQuantity] = useState(1);
 
-  useEffect(() => {
-    if (params.id) {
-      fetchProduct(params.id as string);
-    }
-  }, [params.id, fetchProduct]);
-
-  const fetchProduct = async (id: string) => {
+  const fetchProduct = useCallback(async (id: string) => {
     try {
       setLoading(true);
       const res = await fetch(`/api/products/${id}`);
@@ -50,7 +44,13 @@ export default function ProductDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    if (params.id) {
+      fetchProduct(params.id as string);
+    }
+  }, [params.id, fetchProduct]);
 
   const handleWhatsAppOrder = () => {
     if (!product) return;

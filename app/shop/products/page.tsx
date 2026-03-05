@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ShoppingCart, MessageCircle, Package, Search, Grid3x3, List, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -25,11 +25,7 @@ export default function ProductsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => {
-    fetchProducts();
-  }, [page, selectedCategory, fetchProducts]);
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       const categoryParam = selectedCategory !== 'all' ? `&category=${selectedCategory}` : '';
@@ -44,7 +40,11 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, selectedCategory]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   const handleWhatsAppOrder = (product: Product) => {
     const message = encodeURIComponent(

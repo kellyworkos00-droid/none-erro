@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
     // Calculate metrics
     const metricsData = goals.reduce(
-      (acc: any, goal: any) => {
+      (acc: { total: number; active: number; completed: number; fullyCompleted: number }, goal: { status: string; progressPercent: number }) => {
         acc.total++;
         if (goal.status === "ACTIVE") acc.active++;
         if (goal.status === "COMPLETED") acc.completed++;
@@ -122,7 +122,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Goal ID required" }, { status: 400 });
     }
 
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     if (progressPercent !== undefined) updateData.progressPercent = progressPercent;
     if (status) updateData.status = status;
     if (reviewNotes) updateData.reviewNotes = reviewNotes;
